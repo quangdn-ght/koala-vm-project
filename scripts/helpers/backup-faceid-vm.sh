@@ -36,7 +36,7 @@ SOURCE_DISK="/mnt/data/${VM_NAME}.qcow2"
 BACKUP_DIR="/mnt/data/snapshot"
 DATE_STAMP=$(date '+%Y%m%d-%H%M%S')
 BACKUP_NAME="${VM_NAME}-backup-${DATE_STAMP}"
-KEEP_BACKUPS=5  # Keep last 5 backups to save storage space
+KEEP_BACKUPS=3  # Keep last 3 backups to save storage space
 
 # Log file
 LOG_FILE="${BACKUP_DIR}/backup.log"
