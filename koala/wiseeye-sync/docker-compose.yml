@@ -1,0 +1,61 @@
+volumes:
+  sqlserver_data:
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: wiseeye-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Giahung@2024
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - wiseeye-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Giahung@2024 -C -Q 'SELECT 1' -b"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  backend:
+    image: giahungtechnology/wiseeye-backend:latest
+    container_name: wiseeye-backend
+    env_file:
+      - ./.env
+    networks:
+      - wiseeye-network
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:3003/docs', timeout=5)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    image: giahungtechnology/wiseeye-frontend:latest
+    container_name: wiseeye-frontend
+    ports:
+      - "3128:3000"
+    environment:
+      - BACKEND_API_URL=http://backend:3003
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - wiseeye-network
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/', (res) => process.exit([200, 302].includes(res.statusCode) ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+networks:
+  wiseeye-network:

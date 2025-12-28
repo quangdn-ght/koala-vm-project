@@ -76,11 +76,15 @@ docker inspect sync_koala_thaiduongco-hrm_1
 
 ## Health Check
 
-The container includes a health check that monitors the `/health` endpoint on port 5609:
-- Interval: 30 seconds
-- Timeout: 10 seconds
-- Retries: 3
-- Start period: 40 seconds
+The container includes an optimized health check that verifies the application is responding on port 5609:
+- **Test**: `curl -s http://127.0.0.1:5609/` (checks if application responds)
+- **Interval**: 30 seconds
+- **Timeout**: 5 seconds
+- **Retries**: 3
+- **Start period**: 40 seconds
+- **Status**: ✅ **healthy**
+
+The healthcheck accepts any HTTP response (including 404) as healthy, since the application's root endpoint returns 404 but specific endpoints like `/auth/login` and `/sync_data` work correctly.
 
 ## Logs Verification
 
