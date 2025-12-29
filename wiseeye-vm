@@ -1,0 +1,305 @@
+#!/bin/bash
+
+################################################################################
+# WiseEye VM Manager - Main Entry Point
+# Centralized script to manage WiseEye VM operations
+################################################################################
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+show_help() {
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                    WiseEye VM Manager                         ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "  Centralized tool for managing WiseEye virtual machines"
+    echo ""
+    
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  USAGE${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ./wiseeye-vm ${YELLOW}<command>${NC} [options]"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  VM MANAGEMENT COMMANDS${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}create${NC}              Create new WiseEye VM with Ubuntu 22.04"
+    echo -e "  ${YELLOW}ssh${NC}                 SSH into the WiseEye VM"
+    echo -e "  ${YELLOW}start${NC}               Start the VM"
+    echo -e "  ${YELLOW}stop${NC}                Stop the VM gracefully"
+    echo -e "  ${YELLOW}restart${NC}             Restart the VM"
+    echo -e "  ${YELLOW}destroy${NC}             Force stop the VM"
+    echo -e "  ${YELLOW}status${NC}              Show VM status and info"
+    echo -e "  ${YELLOW}ip${NC}                  Get VM IP address"
+    echo -e "  ${YELLOW}console${NC}             Access VM serial console (Ctrl+] to exit)"
+    echo -e "  ${YELLOW}list${NC}                List all VMs"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  BACKUP & RECOVERY${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}backup${NC}              Create manual backup"
+    echo -e "  ${YELLOW}list-backups${NC}        List all available backups"
+    echo -e "  ${YELLOW}restore${NC} <timestamp>  Show restore instructions for a backup"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  SETUP COMMANDS${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}setup-network${NC}       Complete network setup (static IP + bridge)"
+    echo -e "  ${YELLOW}setup-bridge${NC}        Configure bridge network"
+    echo -e "  ${YELLOW}setup-static-ip${NC}     Configure static IP for interface"
+    echo -e "  ${YELLOW}setup-nvme${NC}          Configure NVMe storage mount"
+    echo -e "  ${YELLOW}setup-env${NC}           Install environment dependencies"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  HELPER COMMANDS${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}generate-preseed${NC}    Generate preseed configuration"
+    echo -e "  ${YELLOW}test-preseed${NC}        Test preseed file"
+    echo -e "  ${YELLOW}help${NC}                Show this help message"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  EXAMPLES${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}./wiseeye-vm create${NC}                          Create new VM"
+    echo -e "  ${YELLOW}./wiseeye-vm ssh${NC}                             SSH to VM"
+    echo -e "  ${YELLOW}./wiseeye-vm status${NC}                          Check VM status"
+    echo -e "  ${YELLOW}./wiseeye-vm backup${NC}                          Create backup"
+    echo -e "  ${YELLOW}./wiseeye-vm list-backups${NC}                    List all backups"
+    echo -e "  ${YELLOW}./wiseeye-vm restore${NC} 20251228-150745         Show restore steps"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  DOCUMENTATION${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  See ${BLUE}docs/${NC} folder for detailed guides:"
+    echo -e "    • ${BLUE}docs/README.md${NC} - Main documentation"
+    echo -e "    • ${BLUE}docs/WISEEYE-DEPLOYMENT.md${NC} - WiseEye deployment guide"
+    echo -e "    • ${BLUE}docs/VM-ACCESS-GUIDE.md${NC} - VM access methods"
+    echo -e "    • ${BLUE}docs/TROUBLESHOOTING.md${NC} - Common issues"
+    echo ""
+}
+
+case "${1:-}" in
+    create)
+        "$SCRIPT_DIR/scripts/vm/create-wiseeye-vm-fully-auto.sh" "${@:2}"
+        ;;
+    ssh)
+        VM_IP=$(virsh domifaddr wiseeye --source agent 2>/dev/null | grep -v '127.0.0.1' | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+        if [ -z "$VM_IP" ]; then
+            VM_IP=$(virsh domifaddr wiseeye 2>/dev/null | grep -v '127.0.0.1' | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+        fi
+        if [ -z "$VM_IP" ]; then
+            VM_MAC=$(virsh domiflist wiseeye 2>/dev/null | grep -oP '([0-9a-f]{2}:){5}[0-9a-f]{2}' | head -1)
+            if [ -n "$VM_MAC" ]; then
+                VM_IP=$(ip neigh | grep -i "$VM_MAC" | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+            fi
+        fi
+        if [ -n "$VM_IP" ]; then
+            echo -e "${GREEN}Connecting to WiseEye VM at $VM_IP...${NC}"
+            ssh ght@"$VM_IP"
+        else
+            echo -e "${RED}Could not detect VM IP. Try: ./wiseeye-vm ip${NC}"
+            exit 1
+        fi
+        ;;
+    start)
+        virsh start wiseeye
+        echo -e "${GREEN}VM started${NC}"
+        ;;
+    stop)
+        virsh shutdown wiseeye
+        echo -e "${GREEN}VM shutdown initiated${NC}"
+        ;;
+    restart)
+        virsh destroy wiseeye 2>/dev/null || true
+        sleep 2
+        virsh start wiseeye
+        echo -e "${GREEN}VM restarted${NC}"
+        ;;
+    destroy)
+        virsh destroy wiseeye
+        echo -e "${GREEN}VM force stopped${NC}"
+        ;;
+    status)
+        virsh dominfo wiseeye
+        ;;
+    ip)
+        VM_MAC=$(virsh domiflist wiseeye 2>/dev/null | grep -oP '([0-9a-f]{2}:){5}[0-9a-f]{2}' | head -1)
+        VM_IP=$(virsh domifaddr wiseeye --source agent 2>/dev/null | grep -v '127.0.0.1' | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+        if [ -z "$VM_IP" ]; then
+            VM_IP=$(virsh domifaddr wiseeye 2>/dev/null | grep -v '127.0.0.1' | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+        fi
+        if [ -z "$VM_IP" ] && [ -n "$VM_MAC" ]; then
+            VM_IP=$(ip neigh | grep -i "$VM_MAC" | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+        fi
+        if [ -z "$VM_IP" ] && [ -n "$VM_MAC" ] && command -v arp >/dev/null 2>&1; then
+            VM_IP=$(arp -an | grep -i "$VM_MAC" | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+        fi
+        if [ -z "$VM_IP" ] && [ -n "$VM_MAC" ] && command -v nmap >/dev/null 2>&1; then
+            BRIDGE_SUBNET=$(ip addr show br0 2>/dev/null | grep -oP 'inet \K([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+' | head -1)
+            if [ -n "$BRIDGE_SUBNET" ]; then
+                echo "Scanning network to find VM..."
+                VM_IP=$(sudo nmap -sn "$BRIDGE_SUBNET" 2>/dev/null | grep -B 2 -i "$VM_MAC" | grep "Nmap scan report" | grep -oP '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+            fi
+        fi
+        if [ -n "$VM_IP" ]; then
+            echo -e "${GREEN}VM IP:${NC} $VM_IP"
+        else
+            echo -e "${RED}Could not detect VM IP${NC}"
+            exit 1
+        fi
+        ;;
+    console)
+        echo ""
+        echo -e "${YELLOW}╔══════════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║  Accessing VM Serial Console                    ║${NC}"
+        echo -e "${YELLOW}║  Press ${RED}Ctrl+]${YELLOW} to exit console                   ║${NC}"
+        echo -e "${YELLOW}╚══════════════════════════════════════════════════╝${NC}"
+        echo ""
+        sleep 2
+        virsh console wiseeye
+        ;;
+    list)
+        virsh list --all
+        ;;
+    backup)
+        sudo "$SCRIPT_DIR/scripts/helpers/backup-wiseeye-vm.sh"
+        ;;
+    list-backups)
+        echo -e "${GREEN}Available backups in /mnt/data/snapshot:${NC}"
+        if [ -d /mnt/data/snapshot ]; then
+            cd /mnt/data/snapshot
+            # Show directories with "backup-" prefix
+            ls -lthd wiseeye-backup-* 2>/dev/null | head -20
+            # Show backup files
+            ls -lth wiseeye-backup-*.qcow2 2>/dev/null | head -20
+            # Show backup XML files
+            ls -lth wiseeye-backup-*.xml 2>/dev/null | head -20
+            if [ $? -ne 0 ]; then
+                echo -e "${YELLOW}No backups found${NC}"
+            fi
+        else
+            echo -e "${RED}Backup directory not found: /mnt/data/snapshot${NC}"
+        fi
+        ;;
+    restore)
+        if [ -z "${2:-}" ]; then
+            echo -e "${RED}Error: Backup timestamp required${NC}"
+            echo "Usage: ./wiseeye-vm restore <backup-timestamp>"
+            echo "Example: ./wiseeye-vm restore 20251228-150745"
+            echo ""
+            echo -e "${GREEN}Available backups:${NC}"
+            ls -1 /mnt/data/snapshot/wiseeye-backup-*.qcow2 2>/dev/null | sed 's/.*wiseeye-backup-\(.*\)\.qcow2/\1/' || echo -e "${YELLOW}No backups found${NC}"
+            exit 1
+        fi
+        
+        BACKUP_TIMESTAMP="$2"
+        BACKUP_DISK="/mnt/data/snapshot/wiseeye-backup-${BACKUP_TIMESTAMP}.qcow2"
+        BACKUP_XML="/mnt/data/snapshot/wiseeye-backup-${BACKUP_TIMESTAMP}.xml"
+        
+        if [ ! -f "$BACKUP_DISK" ] || [ ! -f "$BACKUP_XML" ]; then
+            echo -e "${RED}Error: Backup not found for timestamp: $BACKUP_TIMESTAMP${NC}"
+            echo "Looking for: $BACKUP_DISK"
+            exit 1
+        fi
+        
+        echo -e "${YELLOW}╔════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║  Restore Instructions for backup: $BACKUP_TIMESTAMP         ║${NC}"
+        echo -e "${YELLOW}╚════════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        echo -e "${GREEN}Backup files found:${NC}"
+        echo -e "  Disk:   $BACKUP_DISK"
+        echo -e "  Config: $BACKUP_XML"
+        echo ""
+        echo -e "${RED}⚠️  WARNING: This will replace your current VM! ⚠️${NC}"
+        echo ""
+        echo -e "${GREEN}Method 1: Quick Restore (Replace Current VM)${NC}"
+        echo "----------------------------------------"
+        echo "# Stop the running VM"
+        echo "sudo virsh destroy wiseeye"
+        echo ""
+        echo "# Backup current disk (optional)"
+        echo "sudo mv /mnt/data/wiseeye.qcow2 /mnt/data/wiseeye.qcow2.old"
+        echo ""
+        echo "# Restore the backup disk"
+        echo "sudo cp $BACKUP_DISK /mnt/data/wiseeye.qcow2"
+        echo ""
+        echo "# Start the VM"
+        echo "sudo virsh start wiseeye"
+        echo ""
+        echo -e "${GREEN}Method 2: Create New VM from Backup${NC}"
+        echo "----------------------------------------"
+        echo "# Copy backup to new location"
+        echo "sudo cp $BACKUP_DISK /mnt/data/wiseeye-restored.qcow2"
+        echo ""
+        echo "# Create new VM from backup config"
+        echo "sudo virsh define $BACKUP_XML"
+        echo ""
+        echo "# Update VM to use new disk"
+        echo "sudo virt-xml wiseeye --edit --disk path=/mnt/data/wiseeye-restored.qcow2"
+        echo ""
+        echo "# Start the VM"
+        echo "sudo virsh start wiseeye"
+        echo ""
+        echo -e "${GREEN}Method 3: Test Restore (Create Separate VM)${NC}"
+        echo "----------------------------------------"
+        echo "# Copy backup"
+        echo "sudo cp $BACKUP_DISK /mnt/data/wiseeye-test.qcow2"
+        echo ""
+        echo "# Clone VM configuration"
+        echo "sudo virt-clone --original wiseeye --name wiseeye-test \\"
+        echo "  --file /mnt/data/wiseeye-test.qcow2"
+        echo ""
+        echo "# Start test VM"
+        echo "sudo virsh start wiseeye-test"
+        echo ""
+        echo -e "${YELLOW}After successful restore, verify with:${NC}"
+        echo "  ./wiseeye-vm status"
+        echo "  ./wiseeye-vm ip"
+        echo "  ./wiseeye-vm ssh"
+        ;;
+    setup-network)
+        "$SCRIPT_DIR/scripts/setup/setup-network.sh" "${@:2}"
+        ;;
+    setup-bridge)
+        "$SCRIPT_DIR/scripts/setup/setup-bridge-network.sh" "${@:2}"
+        ;;
+    setup-static-ip)
+        "$SCRIPT_DIR/scripts/setup/setup-static-ip.sh" "${@:2}"
+        ;;
+    setup-nvme)
+        "$SCRIPT_DIR/scripts/setup/setup-nvme-mount.sh" "${@:2}"
+        ;;
+    setup-env)
+        "$SCRIPT_DIR/env/install-env-22.04.sh" "${@:2}"
+        ;;
+    generate-preseed)
+        "$SCRIPT_DIR/scripts/helpers/generate-preseed.sh" "${@:2}"
+        ;;
+    test-preseed)
+        "$SCRIPT_DIR/scripts/helpers/test-preseed.sh" "${@:2}"
+        ;;
+    help|--help|-h|"")
+        show_help
+        ;;
+    *)
+        echo -e "${RED}Error: Unknown command '${1}'${NC}"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac
