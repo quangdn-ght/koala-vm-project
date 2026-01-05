@@ -1,0 +1,340 @@
+#!/bin/bash
+
+################################################################################
+# Create FShare VM - FULLY AUTOMATED Installation with Dual Network Interfaces
+# VM Specs: 8 cores, 8GB RAM, 100GB storage, Java pre-installed
+# Network 1: 10.168.1.104/24 (gateway: 10.168.1.1)
+# Network 2: 192.168.3.104/24 (no gateway)
+################################################################################
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+
+# VM Configuration
+VM_NAME="fshare"
+RAM="8192"
+VCPUS="8"
+DISK_SIZE="100G"
+DISK_PATH="/mnt/data/${VM_NAME}.qcow2"
+CLOUD_IMG_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+CLOUD_IMG="/tmp/ubuntu-22.04-cloud.img"
+CLOUD_INIT_DIR="/tmp/fshare-cloud-init-$$"
+DEPLOY_SCRIPT_SRC="/home/ght/deploy/env/ubuntu-22.04/install-env-22.04.sh"
+
+# Network Configuration
+BRIDGE_PRIMARY="br0"
+BRIDGE_SECONDARY="br1"
+IP_PRIMARY="10.168.1.104"
+IP_SECONDARY="192.168.3.104"
+
+clear
+echo -e "${GREEN}"
+echo "╔═══════════════════════════════════════════════════════════════════╗"
+echo "║                                                                   ║"
+echo "║     FShare VM - FULLY AUTOMATED Installation                      ║"
+echo "║     Dual Network + Java Environment                                ║"
+echo "║                                                                   ║"
+echo "╚═══════════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+echo ""
+log_info "Configuration: 8 cores, 8GB RAM, 100GB storage"
+log_info "OS: Ubuntu 22.04 LTS (Cloud Image)"
+log_info "Network 1: $IP_PRIMARY/24 (gateway: 10.168.1.1)"
+log_info "Network 2: $IP_SECONDARY/24 (no gateway)"
+log_info "Java: OpenJDK 21 (Latest LTS)"
+log_info "Installation: 100% automated - ready in 2-3 minutes!"
+echo ""
+
+# Check if running as non-root
+if [[ $EUID -eq 0 ]]; then
+    log_error "This script should NOT be run as root (don't use sudo)"
+    log_info "The script will prompt for sudo password when needed"
+    exit 1
+fi
+
+# Check if VM already exists
+if virsh list --all | grep -q " $VM_NAME "; then
+    log_warning "VM '$VM_NAME' already exists"
+    read -p "Do you want to remove and recreate it? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Removing existing VM..."
+        virsh destroy "$VM_NAME" 2>/dev/null || true
+        virsh undefine "$VM_NAME" --remove-all-storage 2>/dev/null || true
+        sudo rm -f "$DISK_PATH"
+        log_success "Removed existing VM"
+    else
+        log_info "Aborted"
+        exit 0
+    fi
+fi
+
+# Download cloud image if not exists
+if [ ! -f "$CLOUD_IMG" ]; then
+    log_info "Downloading Ubuntu 22.04 cloud image..."
+    wget -q --show-progress "$CLOUD_IMG_URL" -O "$CLOUD_IMG"
+    log_success "Cloud image downloaded"
+else
+    log_info "Using cached cloud image"
+fi
+
+# Create VM disk from cloud image (use copy instead of backing file to avoid conflicts)
+log_info "Creating VM disk (${DISK_SIZE})..."
+sudo cp "$CLOUD_IMG" "$DISK_PATH"
+sudo qemu-img resize "$DISK_PATH" "$DISK_SIZE"
+log_success "VM disk created"
+
+# Create cloud-init configuration
+log_info "Creating cloud-init configuration..."
+rm -rf "$CLOUD_INIT_DIR"
+mkdir -p "$CLOUD_INIT_DIR"
+
+# Meta-data
+cat > "$CLOUD_INIT_DIR/meta-data" << EOF
+instance-id: fshare-001
+local-hostname: fshare
+EOF
+
+# User-data with full configuration including Java
+cat > "$CLOUD_INIT_DIR/user-data" << 'EOF'
+#cloud-config
+hostname: fshare
+fqdn: fshare.local
+manage_etc_hosts: true
+
+users:
+  - name: ght
+    gecos: GHT User
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin, sudo
+    lock_passwd: false
+    passwd: $6$Qow7zg7XtSATpkJU$W6PzC8MH7153Ido7w.IopTbwD89WuHp5TIWp/Vr3HULVXwwiGQHvxQkuIQfnmanTqywxaL9u.Ftg0megvnG0L/
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCXwnKDEoJ4FuCMwHmoSOxhBOsUaeEbaIQc9BR+5z4mMOHlmPz0I3b67uJaUZGjgWmbT4W+dXw59eRmIu43rqhr41FfIaA8NDPXkcUCQmyhhCzGxFF4tJ1Ar2KK/b/1VvqbDXIh7bzkyTFGRMRif1SxYZfZm4R1+Yr3bvJz6z80QVXHI9kI5pHFRnHdE3O3kt4xVJo9HnnoMhQ6RNo4euG3rojUpFCNtq1hbuSUw7YPY9c8qpvQ8mrOAeElIkW6sfWPBZHw/AWI5r2CaGAiMYs7iP8w/bnqCcBt32GAb7kbyH/cUMjjqG3VeGgFMgERfnd9CfFHiC1XJ2lViCW7i1SatPqFcDE22HPdGbn+/2Bjym9+KA6gqa7E2eBXInvLph9Vz0v5BQbiGrbaeUuWYZ5n68i3uPiHYANmEeArDu0wnPNqFn6PvFEB0kfzG66gYZnO2AOjIa1bMyqYDxZU6BXrQRGqZpUGlTgJtbqBldzj8hikvUQH+TDWlVRnTZ2CgYMqDw792PSmhY/NGvItJTbGqLhSJYk1JR/+3ETdxSog3SI7F5pl3JmoXXilHX+DGm1d8rLQm7ogB/7lE5Pm/y9debq4vgMhQ8qXHVhzOZjHFAAz9w5qq1X7x0Kq6OGWPVx3iBIXJuyCfueEor4UsUrx8GdumBO8vViRQFd/l5wRRw== ght@ght-faceid-server
+
+ssh_pwauth: true
+disable_root: true
+
+packages:
+  - qemu-guest-agent
+  - openssh-server
+  - curl
+  - wget
+  - git
+  - vim
+  - net-tools
+  - htop
+  - build-essential
+  - openjdk-21-jdk
+  - openjdk-21-jre
+
+runcmd:
+  - systemctl enable qemu-guest-agent
+  - systemctl start qemu-guest-agent
+  - mkdir -p /home/ght/deploy/env/ubuntu-22.04
+  - chown -R ght:ght /home/ght/deploy
+  - timedatectl set-timezone UTC
+  - echo "export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> /home/ght/.bashrc
+  - echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /home/ght/.bashrc
+  - echo "JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> /etc/environment
+  - update-alternatives --set java /usr/lib/jvm/java-21-openjdk-amd64/bin/java || true
+
+package_update: true
+package_upgrade: true
+
+power_state:
+  mode: reboot
+  timeout: 300
+  condition: true
+EOF
+
+# Network config for dual interfaces with static IPs
+cat > "$CLOUD_INIT_DIR/network-config" << EOF
+version: 2
+ethernets:
+  enp1s0:
+    addresses:
+      - $IP_PRIMARY/24
+    routes:
+      - to: 0.0.0.0/0
+        via: 10.168.1.1
+    nameservers:
+      addresses: [8.8.8.8, 8.8.4.4]
+  enp2s0:
+    addresses:
+      - $IP_SECONDARY/24
+EOF
+
+# Create cloud-init ISO
+log_info "Creating cloud-init ISO..."
+CLOUD_INIT_ISO="/tmp/fshare-cidata-$$.iso"
+
+if command -v genisoimage &> /dev/null; then
+    genisoimage -output "$CLOUD_INIT_ISO" -volid cidata -joliet -rock \
+        "$CLOUD_INIT_DIR/user-data" "$CLOUD_INIT_DIR/meta-data" "$CLOUD_INIT_DIR/network-config" 2>/dev/null
+else
+    sudo apt-get install -y genisoimage -qq
+    genisoimage -output "$CLOUD_INIT_ISO" -volid cidata -joliet -rock \
+        "$CLOUD_INIT_DIR/user-data" "$CLOUD_INIT_DIR/meta-data" "$CLOUD_INIT_DIR/network-config" 2>/dev/null
+fi
+
+log_success "Cloud-init ISO created"
+
+# Create and start VM with dual network interfaces
+log_info "Creating and starting VM..."
+
+virt-install \
+    --name "$VM_NAME" \
+    --virt-type kvm \
+    --memory "$RAM" \
+    --vcpus "$VCPUS" \
+    --boot hd,menu=on \
+    --disk path="$DISK_PATH",device=disk,bus=virtio \
+    --disk path="$CLOUD_INIT_ISO",device=cdrom \
+    --os-variant ubuntu22.04 \
+    --network bridge="$BRIDGE_PRIMARY",model=virtio \
+    --network bridge="$BRIDGE_SECONDARY",model=virtio \
+    --graphics none \
+    --console pty,target_type=serial \
+    --noautoconsole \
+    --import
+
+sleep 5
+
+log_success "VM created and started!"
+
+# Wait for VM to boot and configure (cloud-init takes ~2 minutes)
+log_info "Waiting for VM to boot and configure (this takes ~2-3 minutes)..."
+echo ""
+
+VM_READY=false
+for i in {1..40}; do
+    if ping -c 1 -W 2 "$IP_PRIMARY" > /dev/null 2>&1; then
+        VM_READY=true
+        echo ""
+        log_success "Primary network interface is up: $IP_PRIMARY"
+        break
+    fi
+    echo -n "."
+    sleep 5
+done
+
+echo ""
+
+if [ "$VM_READY" = false ]; then
+    log_warning "Primary IP not responding yet. Network may still be configuring."
+    log_info "Wait a few minutes and try: ssh ght@$IP_PRIMARY"
+fi
+
+# Wait for SSH to be ready
+if [ "$VM_READY" = true ]; then
+    log_info "Waiting for SSH service to be ready..."
+    SSH_READY=false
+    
+    for i in {1..30}; do
+        if timeout 3 ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -o BatchMode=yes ght@$IP_PRIMARY exit 2>/dev/null; then
+            SSH_READY=true
+            break
+        fi
+        echo -n "."
+        sleep 5
+    done
+    
+    echo ""
+    
+    if [ "$SSH_READY" = true ]; then
+        log_success "SSH is ready!"
+        
+        # Test secondary interface
+        log_info "Testing secondary network interface..."
+        if ping -c 1 -W 2 "$IP_SECONDARY" > /dev/null 2>&1; then
+            log_success "Secondary IP is reachable: $IP_SECONDARY"
+        else
+            log_warning "Secondary IP not yet reachable (may need a moment)"
+        fi
+        
+        # Transfer environment setup script
+        log_info "Transferring environment setup script..."
+        
+        if scp -o StrictHostKeyChecking=no "$DEPLOY_SCRIPT_SRC" ght@$IP_PRIMARY:/home/ght/deploy/env/ubuntu-22.04/ 2>/dev/null; then
+            log_success "Environment setup script transferred"
+            
+            log_info "Making script executable..."
+            ssh -o StrictHostKeyChecking=no ght@$IP_PRIMARY "chmod +x /home/ght/deploy/env/ubuntu-22.04/install-env-22.04.sh" 2>/dev/null
+            
+            log_success "Environment setup script is ready"
+        else
+            log_warning "Could not transfer script automatically"
+            log_info "You can transfer it manually after VM is ready"
+        fi
+    else
+        log_warning "SSH not responding yet. Wait a minute and try: ssh ght@$IP_PRIMARY"
+    fi
+fi
+
+# Cleanup
+rm -rf "$CLOUD_INIT_DIR"
+
+# Display summary
+echo ""
+log_success "╔════════════════════════════════════════════════════════════╗"
+log_success "║     FShare VM Created Successfully - 100% Automated!       ║"
+log_success "╚════════════════════════════════════════════════════════════╝"
+echo ""
+log_info "VM Details:"
+echo "  • Name:        $VM_NAME"
+echo "  • CPU:         $VCPUS cores"
+echo "  • RAM:         8GB"
+echo "  • Disk:        $DISK_SIZE (in /mnt/data)"
+echo "  • Primary IP:  $IP_PRIMARY (gateway: 10.168.1.1)"
+echo "  • Secondary IP: $IP_SECONDARY (no gateway)"
+echo "  • Username:    ght"
+echo "  • Password:    1"
+echo "  • SSH Key:     Configured (passwordless)"
+echo ""
+log_info "Java Environment:"
+echo "  • Version:     OpenJDK 21 (Latest LTS)"
+echo "  • JAVA_HOME:   /usr/lib/jvm/java-21-openjdk-amd64"
+echo "  • Verify:      ssh ght@$IP_PRIMARY 'java -version'"
+echo ""
+log_info "Access VM:"
+echo "  • Primary:     ssh ght@$IP_PRIMARY"
+echo "  • Secondary:   ssh ght@$IP_SECONDARY"
+echo ""
+log_info "Network Verification:"
+echo "  • Test primary:   ping $IP_PRIMARY"
+echo "  • Test secondary: ping $IP_SECONDARY"
+echo "  • Check routes:   ssh ght@$IP_PRIMARY 'ip route'"
+echo "  • Check IPs:      ssh ght@$IP_PRIMARY 'ip addr'"
+echo ""
+log_info "Next Steps:"
+echo "  1. Run environment setup script (Docker, tools, etc):"
+echo "     ssh ght@$IP_PRIMARY"
+echo "     cd deploy/env/ubuntu-22.04"
+echo "     ./install-env-22.04.sh"
+echo ""
+echo "  2. Verify Java installation:"
+echo "     ssh ght@$IP_PRIMARY 'java -version'"
+echo ""
+log_info "VM Management:"
+echo "  • Use helper:  ./scripts/helpers/manage-fshare.sh [command]"
+echo "  • Status:      virsh list --all"
+echo "  • Start:       virsh start $VM_NAME"
+echo "  • Stop:        virsh shutdown $VM_NAME"
+echo "  • Console:     virsh console $VM_NAME"
+echo ""
+log_success "Installation complete! 🚀"
+
