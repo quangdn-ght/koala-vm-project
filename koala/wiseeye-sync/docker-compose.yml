@@ -38,7 +38,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: giahungtechnology/wiseeye-frontend:v1.2
+    image: giahungtechnology/wiseeye-frontend:latest
     container_name: wiseeye-frontend
     ports:
       - "3128:3000"

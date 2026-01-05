@@ -1,0 +1,29 @@
+[Unit]
+Description=JDownloader Headless Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/jd2
+Environment="JAVA_OPTS=-Djava.awt.headless=true"
+Environment="HOME=/root"
+
+# Start JDownloader
+ExecStart=/usr/bin/java -Djava.awt.headless=true -Xmx512m -jar /opt/jd2/JDownloader.jar -norestart
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Resource limits
+Nice=5
+LimitNOFILE=4096
+
+# Logs
+StandardOutput=append:/tmp/jd2.log
+StandardError=append:/tmp/jd2.log
+
+[Install]
+WantedBy=multi-user.target
