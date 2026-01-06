@@ -1,26 +1,95 @@
 #!/bin/bash
 
 ################################################################################
-# Create FShare VM - FULLY AUTOMATED Installation with Dual Network Interfaces
-# VM Specs: 8 cores, 8GB RAM, 100GB storage, Java pre-installed
-# Network 1: 10.168.1.104/24 (gateway: 10.168.1.1)
-# Network 2: 192.168.3.104/24 (no gateway)
+# FShare VM Manager - Main Entry Point
+# Centralized script to manage FShare VM operations
 ################################################################################
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
 NC='\033[0m'
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+show_help() {
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                    FShare VM Manager                          ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "  Centralized tool for managing FShare virtual machines"
+    echo ""
+    
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  USAGE${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ./fshare-vm ${YELLOW}<command>${NC} [options]"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  VM MANAGEMENT COMMANDS${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}create${NC}              Create new FShare VM with Ubuntu 22.04"
+    echo -e "  ${YELLOW}ssh${NC}                 SSH into the FShare VM (primary IP)"
+    echo -e "  ${YELLOW}ssh2${NC}                SSH into the FShare VM (secondary IP)"
+    echo -e "  ${YELLOW}start${NC}               Start the VM"
+    echo -e "  ${YELLOW}stop${NC}                Stop the VM gracefully"
+    echo -e "  ${YELLOW}restart${NC}             Restart the VM"
+    echo -e "  ${YELLOW}destroy${NC}             Force stop the VM"
+    echo -e "  ${YELLOW}status${NC}              Show VM status and info"
+    echo -e "  ${YELLOW}ip${NC}                  Get VM IP addresses"
+    echo -e "  ${YELLOW}console${NC}             Access VM serial console (Ctrl+] to exit)"
+    echo -e "  ${YELLOW}list${NC}                List all VMs"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  JAVA & ENVIRONMENT${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}java${NC}                Check Java version"
+    echo -e "  ${YELLOW}maven${NC}               Check Maven version"
+    echo -e "  ${YELLOW}gradle${NC}              Check Gradle version"
+    echo -e "  ${YELLOW}setup-env${NC}           Run environment setup (Docker, tools)"
+    echo -e "  ${YELLOW}ping${NC}                Test network connectivity"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  BACKUP & RECOVERY${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}backup${NC}              Create manual backup"
+    echo -e "  ${YELLOW}list-backups${NC}        List all available backups"
+    echo -e "  ${YELLOW}restore${NC} <timestamp>  Show restore instructions for a backup"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  EXAMPLES${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}./fshare-vm create${NC}                          Create new VM"
+    echo -e "  ${YELLOW}./fshare-vm ssh${NC}                             SSH to VM (primary)"
+    echo -e "  ${YELLOW}./fshare-vm ssh2${NC}                            SSH to VM (secondary)"
+    echo -e "  ${YELLOW}./fshare-vm status${NC}                          Check VM status"
+    echo -e "  ${YELLOW}./fshare-vm java${NC}                            Check Java version"
+    echo -e "  ${YELLOW}./fshare-vm backup${NC}                          Create backup"
+    echo -e "  ${YELLOW}./fshare-vm list-backups${NC}                    List all backups"
+    echo -e "  ${YELLOW}./fshare-vm restore${NC} 20260105-120000         Show restore steps"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  DOCUMENTATION${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  See ${BLUE}FSHARE-VM-GUIDE.md${NC} for detailed documentation"
+    echo ""
+}
+
+create_fshare_vm() {
+    # Original VM creation script content
+    log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+    log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+    log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+    log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
 # VM Configuration
 VM_NAME="fshare"
@@ -28,8 +97,7 @@ RAM="8192"
 VCPUS="8"
 DISK_SIZE="100G"
 DISK_PATH="/mnt/data/${VM_NAME}.qcow2"
-CLOUD_IMG_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-CLOUD_IMG="/tmp/ubuntu-22.04-cloud.img"
+CLOUD_IMG="/mnt/data/vm-images/ubuntu-22.04-cloud.img"
 CLOUD_INIT_DIR="/tmp/fshare-cloud-init-$$"
 DEPLOY_SCRIPT_SRC="/home/ght/deploy/env/ubuntu-22.04/install-env-22.04.sh"
 
@@ -81,14 +149,14 @@ if virsh list --all | grep -q " $VM_NAME "; then
     fi
 fi
 
-# Download cloud image if not exists
+# Verify cloud image exists
 if [ ! -f "$CLOUD_IMG" ]; then
-    log_info "Downloading Ubuntu 22.04 cloud image..."
-    wget -q --show-progress "$CLOUD_IMG_URL" -O "$CLOUD_IMG"
-    log_success "Cloud image downloaded"
-else
-    log_info "Using cached cloud image"
+    log_error "Cloud image not found at: $CLOUD_IMG"
+    log_error "Please ensure the Ubuntu 22.04 cloud image is available at this location"
+    exit 1
 fi
+
+log_info "Using cloud image: $CLOUD_IMG"
 
 # Create VM disk from cloud image (use copy instead of backing file to avoid conflicts)
 log_info "Creating VM disk (${DISK_SIZE})..."
@@ -114,6 +182,10 @@ hostname: fshare
 fqdn: fshare.local
 manage_etc_hosts: true
 
+# Preserve SSH host keys to avoid "Remote host identification has changed" warnings
+ssh_deletekeys: false
+ssh_genkeytypes: ['rsa', 'ecdsa', 'ed25519']
+
 users:
   - name: ght
     gecos: GHT User
@@ -128,6 +200,10 @@ users:
 ssh_pwauth: true
 disable_root: true
 
+# Package installation - optimized for speed
+apt:
+  preserve_sources_list: true
+  
 packages:
   - qemu-guest-agent
   - openssh-server
@@ -135,26 +211,57 @@ packages:
   - wget
   - git
   - vim
+  - nano
   - net-tools
   - htop
+  - iotop
+  - iftop
+  - netcat
+  - telnet
+  - dnsutils
   - build-essential
   - openjdk-21-jdk
   - openjdk-21-jre
+  - maven
+  - gradle
 
+# Run commands after package installation
 runcmd:
+  # Enable and start qemu-guest-agent for better VM integration
   - systemctl enable qemu-guest-agent
   - systemctl start qemu-guest-agent
+  
+  # Create directory structure
   - mkdir -p /home/ght/deploy/env/ubuntu-22.04
+  - mkdir -p /home/ght/.ssh
   - chown -R ght:ght /home/ght/deploy
+  - chown -R ght:ght /home/ght/.ssh
+  - chmod 700 /home/ght/.ssh
+  
+  # Set timezone
   - timedatectl set-timezone UTC
+  
+  # Configure Java environment for user
   - echo "export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> /home/ght/.bashrc
   - echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /home/ght/.bashrc
+  
+  # Configure Java environment system-wide
   - echo "JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> /etc/environment
   - update-alternatives --set java /usr/lib/jvm/java-21-openjdk-amd64/bin/java || true
+  
+  # Optimize SSH for faster connections
+  - sed -i 's/#UseDNS yes/UseDNS no/' /etc/ssh/sshd_config
+  - systemctl restart sshd
+  
+  # Create completion marker
+  - touch /home/ght/.cloud-init-complete
+  - chown ght:ght /home/ght/.cloud-init-complete
 
+# Update and upgrade packages
 package_update: true
 package_upgrade: true
 
+# Reboot after cloud-init completes to ensure all changes take effect
 power_state:
   mode: reboot
   timeout: 300
@@ -330,11 +437,190 @@ echo "  2. Verify Java installation:"
 echo "     ssh ght@$IP_PRIMARY 'java -version'"
 echo ""
 log_info "VM Management:"
-echo "  • Use helper:  ./scripts/helpers/manage-fshare.sh [command]"
-echo "  • Status:      virsh list --all"
-echo "  • Start:       virsh start $VM_NAME"
-echo "  • Stop:        virsh shutdown $VM_NAME"
-echo "  • Console:     virsh console $VM_NAME"
+echo "  • Use CLI:     ./fshare-vm [command]"
+echo "  • Status:      ./fshare-vm status"
+echo "  • Start:       ./fshare-vm start"
+echo "  • Stop:        ./fshare-vm stop"
+echo "  • Console:     ./fshare-vm console"
 echo ""
 log_success "Installation complete! 🚀"
+}
+
+# Main command router
+VM_NAME="fshare"
+IP_PRIMARY="10.168.1.104"
+IP_SECONDARY="192.168.3.104"
+
+case "${1:-}" in
+    create)
+        create_fshare_vm "${@:2}"
+        ;;
+    ssh)
+        echo -e "${GREEN}Connecting to FShare VM (primary IP: $IP_PRIMARY)...${NC}"
+        ssh ght@"$IP_PRIMARY"
+        ;;
+    ssh2)
+        echo -e "${GREEN}Connecting to FShare VM (secondary IP: $IP_SECONDARY)...${NC}"
+        ssh ght@"$IP_SECONDARY"
+        ;;
+    start)
+        virsh start "$VM_NAME"
+        echo -e "${GREEN}VM started${NC}"
+        ;;
+    stop)
+        virsh shutdown "$VM_NAME"
+        echo -e "${GREEN}VM shutdown initiated${NC}"
+        ;;
+    restart)
+        virsh destroy "$VM_NAME" 2>/dev/null || true
+        sleep 2
+        virsh start "$VM_NAME"
+        echo -e "${GREEN}VM restarted${NC}"
+        ;;
+    destroy)
+        virsh destroy "$VM_NAME"
+        echo -e "${GREEN}VM force stopped${NC}"
+        ;;
+    status)
+        virsh dominfo "$VM_NAME"
+        ;;
+    ip)
+        echo "VM IP Addresses:"
+        echo -e "  Primary:   ${GREEN}$IP_PRIMARY${NC} (gateway: 10.168.1.1)"
+        echo -e "  Secondary: ${GREEN}$IP_SECONDARY${NC} (no gateway)"
+        echo ""
+        echo -e "${BLUE}Testing connectivity...${NC}"
+        if ping -c 1 -W 2 "$IP_PRIMARY" > /dev/null 2>&1; then
+            echo -e "  Primary:   ${GREEN}✓ reachable${NC}"
+        else
+            echo -e "  Primary:   ${RED}✗ not reachable${NC}"
+        fi
+        
+        if ping -c 1 -W 2 "$IP_SECONDARY" > /dev/null 2>&1; then
+            echo -e "  Secondary: ${GREEN}✓ reachable${NC}"
+        else
+            echo -e "  Secondary: ${RED}✗ not reachable${NC}"
+        fi
+        ;;
+    console)
+        echo ""
+        echo -e "${YELLOW}╔══════════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║  Accessing VM Serial Console                    ║${NC}"
+        echo -e "${YELLOW}║  Press ${RED}Ctrl+]${YELLOW} to exit console                   ║${NC}"
+        echo -e "${YELLOW}╚══════════════════════════════════════════════════╝${NC}"
+        echo ""
+        sleep 2
+        virsh console "$VM_NAME"
+        ;;
+    list)
+        virsh list --all
+        ;;
+    java)
+        echo -e "${GREEN}Checking Java version...${NC}"
+        ssh -o ConnectTimeout=5 ght@"$IP_PRIMARY" 'java -version'
+        ;;
+    maven)
+        echo -e "${GREEN}Checking Maven version...${NC}"
+        ssh -o ConnectTimeout=5 ght@"$IP_PRIMARY" 'mvn --version'
+        ;;
+    gradle)
+        echo -e "${GREEN}Checking Gradle version...${NC}"
+        ssh -o ConnectTimeout=5 ght@"$IP_PRIMARY" 'gradle --version'
+        ;;
+    setup-env)
+        echo -e "${GREEN}Running environment setup script...${NC}"
+        ssh -o ConnectTimeout=5 -t ght@"$IP_PRIMARY" 'cd deploy/env/ubuntu-22.04 && ./install-env-22.04.sh'
+        ;;
+    ping)
+        echo "Testing network connectivity..."
+        echo -n "Primary IP ($IP_PRIMARY): "
+        if ping -c 3 -W 2 "$IP_PRIMARY" > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ OK${NC}"
+        else
+            echo -e "${RED}✗ FAILED${NC}"
+        fi
+        
+        echo -n "Secondary IP ($IP_SECONDARY): "
+        if ping -c 3 -W 2 "$IP_SECONDARY" > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ OK${NC}"
+        else
+            echo -e "${RED}✗ FAILED${NC}"
+        fi
+        ;;
+    backup)
+        sudo "$SCRIPT_DIR/scripts/helpers/backup-fshare-vm.sh"
+        ;;
+    list-backups)
+        echo -e "${GREEN}Available backups in /mnt/data/snapshot:${NC}"
+        if [ -d /mnt/data/snapshot ]; then
+            cd /mnt/data/snapshot
+            ls -lth fshare-backup-*.qcow2 2>/dev/null | head -20
+            ls -lth fshare-backup-*.xml 2>/dev/null | head -20
+            if [ $? -ne 0 ]; then
+                echo -e "${YELLOW}No backups found${NC}"
+            fi
+        else
+            echo -e "${RED}Backup directory not found: /mnt/data/snapshot${NC}"
+        fi
+        ;;
+    restore)
+        if [ -z "${2:-}" ]; then
+            echo -e "${RED}Error: Backup timestamp required${NC}"
+            echo "Usage: ./fshare-vm restore <backup-timestamp>"
+            echo "Example: ./fshare-vm restore 20260105-120000"
+            echo ""
+            echo -e "${GREEN}Available backups:${NC}"
+            ls -1 /mnt/data/snapshot/fshare-backup-*.qcow2 2>/dev/null | sed 's/.*fshare-backup-\(.*\)\.qcow2/\1/' || echo -e "${YELLOW}No backups found${NC}"
+            exit 1
+        fi
+        
+        BACKUP_TIMESTAMP="$2"
+        BACKUP_DISK="/mnt/data/snapshot/fshare-backup-${BACKUP_TIMESTAMP}.qcow2"
+        BACKUP_XML="/mnt/data/snapshot/fshare-backup-${BACKUP_TIMESTAMP}.xml"
+        
+        if [ ! -f "$BACKUP_DISK" ] || [ ! -f "$BACKUP_XML" ]; then
+            echo -e "${RED}Error: Backup not found for timestamp: $BACKUP_TIMESTAMP${NC}"
+            echo "Looking for: $BACKUP_DISK"
+            exit 1
+        fi
+        
+        echo -e "${YELLOW}╔════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║  Restore Instructions for backup: $BACKUP_TIMESTAMP         ║${NC}"
+        echo -e "${YELLOW}╚════════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        echo -e "${GREEN}Backup files found:${NC}"
+        echo -e "  Disk:   $BACKUP_DISK"
+        echo -e "  Config: $BACKUP_XML"
+        echo ""
+        echo -e "${RED}⚠️  WARNING: This will replace your current VM! ⚠️${NC}"
+        echo ""
+        echo -e "${GREEN}Method 1: Quick Restore (Replace Current VM)${NC}"
+        echo "----------------------------------------"
+        echo "# Stop the running VM"
+        echo "sudo virsh destroy $VM_NAME"
+        echo ""
+        echo "# Backup current disk (optional)"
+        echo "sudo mv /mnt/data/$VM_NAME.qcow2 /mnt/data/$VM_NAME.qcow2.old"
+        echo ""
+        echo "# Restore the backup disk"
+        echo "sudo cp $BACKUP_DISK /mnt/data/$VM_NAME.qcow2"
+        echo ""
+        echo "# Start the VM"
+        echo "sudo virsh start $VM_NAME"
+        echo ""
+        echo -e "${YELLOW}After successful restore, verify with:${NC}"
+        echo "  ./fshare-vm status"
+        echo "  ./fshare-vm ip"
+        echo "  ./fshare-vm ssh"
+        ;;
+    help|--help|-h|"")
+        show_help
+        ;;
+    *)
+        echo -e "${RED}Error: Unknown command '${1}'${NC}"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac
 
