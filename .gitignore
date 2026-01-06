@@ -16,6 +16,7 @@ iso/*.iso
 
 # Temporary files
 /mnt/data/snapshot/*
+.vm-work/
 
 # Python cache
 __pycache__/
