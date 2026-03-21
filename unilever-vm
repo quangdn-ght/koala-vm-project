@@ -1,0 +1,139 @@
+#!/bin/bash
+
+################################################################################
+# Unilever VM Manager - Main Entry Point
+# Centralized script to manage Unilever VM operations
+################################################################################
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# VM Configuration
+VM_NAME="unilever"
+IP_PRIMARY="10.168.1.58"
+
+show_help() {
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                  Unilever VM Manager                          ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "  Centralized tool for managing Unilever virtual machine"
+    echo ""
+    
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  USAGE${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ./unilever-vm ${YELLOW}<command>${NC} [options]"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  VM MANAGEMENT COMMANDS${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}ssh${NC}                 SSH into the Unilever VM"
+    echo -e "  ${YELLOW}start${NC}               Start the VM"
+    echo -e "  ${YELLOW}stop${NC}                Stop the VM gracefully"
+    echo -e "  ${YELLOW}restart${NC}             Restart the VM"
+    echo -e "  ${YELLOW}destroy${NC}             Force stop the VM"
+    echo -e "  ${YELLOW}status${NC}              Show VM status and info"
+    echo -e "  ${YELLOW}ip${NC}                  Get VM IP address"
+    echo -e "  ${YELLOW}console${NC}             Access VM serial console (Ctrl+] to exit)"
+    echo -e "  ${YELLOW}list${NC}                List all VMs"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  JAVA & ENVIRONMENT${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}java${NC}                Check Java version"
+    echo -e "  ${YELLOW}maven${NC}               Check Maven version"
+    echo -e "  ${YELLOW}gradle${NC}              Check Gradle version"
+    echo -e "  ${YELLOW}ping${NC}                Test network connectivity"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  EXAMPLES${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}./unilever-vm ssh${NC}                          SSH to VM"
+    echo -e "  ${YELLOW}./unilever-vm status${NC}                       Check VM status"
+    echo -e "  ${YELLOW}./unilever-vm java${NC}                         Check Java version"
+    echo ""
+}
+
+# Main command dispatcher
+case "${1:-}" in
+    ssh)
+        ssh -o ConnectTimeout=5 ght@"$IP_PRIMARY"
+        ;;
+    start)
+        echo -e "${GREEN}Starting $VM_NAME VM...${NC}"
+        sudo virsh start "$VM_NAME"
+        ;;
+    stop)
+        echo -e "${YELLOW}Stopping $VM_NAME VM...${NC}"
+        sudo virsh shutdown "$VM_NAME"
+        ;;
+    restart)
+        echo -e "${YELLOW}Restarting $VM_NAME VM...${NC}"
+        sudo virsh reboot "$VM_NAME"
+        ;;
+    destroy)
+        echo -e "${RED}Force stopping $VM_NAME VM...${NC}"
+        sudo virsh destroy "$VM_NAME"
+        ;;
+    status)
+        echo -e "${GREEN}VM Status:${NC}"
+        sudo virsh dominfo "$VM_NAME"
+        echo ""
+        echo -e "${GREEN}Network Info:${NC}"
+        echo "IP Address: $IP_PRIMARY"
+        ;;
+    ip)
+        echo -e "${GREEN}VM IP Address:${NC}"
+        echo "$IP_PRIMARY"
+        sudo virsh domifaddr "$VM_NAME" 2>/dev/null || true
+        ;;
+    console)
+        echo -e "${YELLOW}Connecting to serial console... (Press Ctrl+] to exit)${NC}"
+        sudo virsh console "$VM_NAME"
+        ;;
+    list)
+        sudo virsh list --all
+        ;;
+    java)
+        echo -e "${GREEN}Checking Java version...${NC}"
+        ssh -o ConnectTimeout=5 ght@"$IP_PRIMARY" 'java -version'
+        ;;
+    maven)
+        echo -e "${GREEN}Checking Maven version...${NC}"
+        ssh -o ConnectTimeout=5 ght@"$IP_PRIMARY" 'mvn --version'
+        ;;
+    gradle)
+        echo -e "${GREEN}Checking Gradle version...${NC}"
+        ssh -o ConnectTimeout=5 ght@"$IP_PRIMARY" 'gradle --version'
+        ;;
+    ping)
+        echo "Testing network connectivity..."
+        echo -n "IP ($IP_PRIMARY): "
+        if ping -c 3 -W 2 "$IP_PRIMARY" > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ OK${NC}"
+        else
+            echo -e "${RED}✗ FAILED${NC}"
+        fi
+        ;;
+    help|--help|-h|"")
+        show_help
+        ;;
+    *)
+        echo -e "${RED}Error: Unknown command '${1}'${NC}"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac

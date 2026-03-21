@@ -1,0 +1,101 @@
+#!/bin/bash
+
+################################################################################
+# NX-VMS VM Manager - Main Entry Point
+# Centralized script to manage NX-VMS VM operations
+################################################################################
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VM_NAME="nx-vms"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+show_help() {
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                    NX-VMS VM Manager                          ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "  Centralized tool for managing NX-VMS virtual machines"
+    echo ""
+    
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  USAGE${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ./nx-vms-vm ${YELLOW}<command>${NC}"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  VM MANAGEMENT COMMANDS${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}create${NC}              Create new NX-VMS VM with Ubuntu 24.04"
+    echo -e "  ${YELLOW}ssh${NC}                 SSH into the NX-VMS VM"
+    echo -e "  ${YELLOW}start${NC}               Start the VM"
+    echo -e "  ${YELLOW}stop${NC}                Stop the VM gracefully"
+    echo -e "  ${YELLOW}restart${NC}             Restart the VM"
+    echo -e "  ${YELLOW}destroy${NC}             Force stop the VM"
+    echo -e "  ${YELLOW}status${NC}              Show VM status and info"
+    echo -e "  ${YELLOW}ip${NC}                  Get VM IP address"
+    echo -e "  ${YELLOW}console${NC}             Access VM serial console (Ctrl+] to exit)"
+    echo -e "  ${YELLOW}list${NC}                List all VMs"
+    echo ""
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  EXAMPLES${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${YELLOW}./nx-vms-vm create${NC}                          Create new VM"
+    echo -e "  ${YELLOW}./nx-vms-vm ssh${NC}                             SSH to VM"
+    echo -e "  ${YELLOW}./nx-vms-vm status${NC}                          Check VM status"
+    echo -e "  ${YELLOW}./nx-vms-vm restart${NC}                         Restart VM"
+    echo ""
+}
+
+case "${1:-}" in
+    create)
+        "$SCRIPT_DIR/scripts/vm/create-nx-vms-vm.sh"
+        ;;
+    ssh)
+        ssh ght@10.168.1.106
+        ;;
+    start)
+        virsh start "$VM_NAME"
+        ;;
+    stop)
+        virsh shutdown "$VM_NAME"
+        ;;
+    restart)
+        virsh reboot "$VM_NAME"
+        ;;
+    destroy)
+        virsh destroy "$VM_NAME"
+        ;;
+    status)
+        virsh dominfo "$VM_NAME"
+        ;;
+    ip)
+        virsh domifaddr "$VM_NAME"
+        ;;
+    console)
+        virsh console "$VM_NAME"
+        ;;
+    list)
+        virsh list --all
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    "")
+        show_help
+        ;;
+    *)
+        echo -e "${RED}Unknown command: $1${NC}"
+        echo "Run './nx-vms-vm help' for usage information"
+        exit 1
+        ;;
+esac

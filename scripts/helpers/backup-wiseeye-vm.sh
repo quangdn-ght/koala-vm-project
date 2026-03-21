@@ -32,7 +32,7 @@ log_warning() {
 
 # Configuration
 VM_NAME="wiseeye"
-SOURCE_DISK="/mnt/data/${VM_NAME}.qcow2"
+SOURCE_DISK="/mnt/data/vm-images/wiseeye-vm.qcow2"
 BACKUP_DIR="/mnt/data/snapshot"
 DATE_STAMP=$(date '+%Y%m%d-%H%M%S')
 BACKUP_NAME="${VM_NAME}-backup-${DATE_STAMP}"
