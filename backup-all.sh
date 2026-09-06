@@ -2,7 +2,7 @@
 
 ################################################################################
 # Master Backup Script
-# Backs up both WiseEye and FaceID VMs
+# Backs up Kong, WiseEye, and FaceID VMs (sequential, smallest first)
 ################################################################################
 
 # Check if running as root/sudo
@@ -41,6 +41,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPERS_DIR="${SCRIPT_DIR}/scripts/helpers"
 
 # Backup scripts
+KONG_BACKUP="${HELPERS_DIR}/backup-fshare-vm.sh"
 WISEEYE_BACKUP="${HELPERS_DIR}/backup-wiseeye-vm.sh"
 FACEID_BACKUP="${HELPERS_DIR}/backup-faceid-vm.sh"
 
@@ -58,6 +59,11 @@ log_info "Date: $(date '+%Y-%m-%d %H:%M:%S')"
 log_info ""
 
 # Check if backup scripts exist
+if [[ ! -f "$KONG_BACKUP" ]]; then
+    log_error "Kong backup script not found: $KONG_BACKUP"
+    exit 1
+fi
+
 if [[ ! -f "$WISEEYE_BACKUP" ]]; then
     log_error "WiseEye backup script not found: $WISEEYE_BACKUP"
     exit 1
@@ -69,16 +75,28 @@ if [[ ! -f "$FACEID_BACKUP" ]]; then
 fi
 
 # Make sure scripts are executable
-chmod +x "$WISEEYE_BACKUP"
-chmod +x "$FACEID_BACKUP"
+chmod +x "$KONG_BACKUP" "$WISEEYE_BACKUP" "$FACEID_BACKUP"
 
 # Track success/failure
+KONG_SUCCESS=false
 WISEEYE_SUCCESS=false
 FACEID_SUCCESS=false
 
+# Backup Kong VM (smallest first)
+log_info "=========================================="
+log_info "1/3: Starting Kong VM Backup"
+log_info "=========================================="
+if bash "$KONG_BACKUP"; then
+    log_success "✓ Kong VM backup completed successfully"
+    KONG_SUCCESS=true
+else
+    log_error "✗ Kong VM backup failed"
+fi
+echo ""
+
 # Backup WiseEye VM
 log_info "=========================================="
-log_info "1/2: Starting WiseEye VM Backup"
+log_info "2/3: Starting WiseEye VM Backup"
 log_info "=========================================="
 if bash "$WISEEYE_BACKUP"; then
     log_success "✓ WiseEye VM backup completed successfully"
@@ -90,7 +108,7 @@ echo ""
 
 # Backup FaceID VM
 log_info "=========================================="
-log_info "2/2: Starting FaceID VM Backup"
+log_info "3/3: Starting FaceID VM Backup"
 log_info "=========================================="
 if bash "$FACEID_BACKUP"; then
     log_success "✓ FaceID VM backup completed successfully"
@@ -104,12 +122,13 @@ echo ""
 log_info "=========================================="
 log_info "Backup Summary"
 log_info "=========================================="
+log_info "Kong VM: $([ "$KONG_SUCCESS" = true ] && echo -e "${GREEN}SUCCESS${NC}" || echo -e "${RED}FAILED${NC}")"
 log_info "WiseEye VM: $([ "$WISEEYE_SUCCESS" = true ] && echo -e "${GREEN}SUCCESS${NC}" || echo -e "${RED}FAILED${NC}")"
 log_info "FaceID VM: $([ "$FACEID_SUCCESS" = true ] && echo -e "${GREEN}SUCCESS${NC}" || echo -e "${RED}FAILED${NC}")"
 log_info "=========================================="
 
 # Exit with error if any backup failed
-if [ "$WISEEYE_SUCCESS" = true ] && [ "$FACEID_SUCCESS" = true ]; then
+if [ "$KONG_SUCCESS" = true ] && [ "$WISEEYE_SUCCESS" = true ] && [ "$FACEID_SUCCESS" = true ]; then
     log_success "All backups completed successfully!"
     exit 0
 else

@@ -34,13 +34,13 @@ Re-created the `fshare-vm` script to use **local cloud-init image** instead of d
 
 ## Files Modified
 
-1. **[fshare-vm](fshare-vm)** - Main VM creation script
+1. **[fshare-vm](../../../fshare-vm)** - Main VM creation script
    - Changed cloud image source to local path
    - Enhanced cloud-init user-data configuration
    - Added better error checking
    - Improved logging and status messages
 
-2. **[FSHARE-VM-GUIDE.md](FSHARE-VM-GUIDE.md)** - Documentation
+2. **[README.md](README.md)** - Operational guide
    - Updated to reflect cloud-init deployment method
    - Added cloud-init troubleshooting section
    - Added Maven and Gradle to tool list

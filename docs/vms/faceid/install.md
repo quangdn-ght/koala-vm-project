@@ -316,17 +316,17 @@ sudo systemctl restart ssh
 
 ## Files Reference
 
-- [create-faceid-vm.sh](create-faceid-vm.sh) - Main installation script
-- [preseed.cfg](preseed.cfg) - Automated installation configuration
-- [generate-preseed.sh](generate-preseed.sh) - Generate preseed with custom password
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Permission fixes and advanced troubleshooting
+- [create-faceid-vm.sh](../../../scripts/vm/create-faceid-vm.sh) - Main installation script
+- [preseed.cfg](../../../config/preseed.cfg) - Automated installation configuration
+- [generate-preseed.sh](../../../scripts/helpers/generate-preseed.sh) - Generate preseed with custom password
+- [troubleshooting.md](troubleshooting.md) - Permission fixes and advanced troubleshooting
 
 ---
 
 ## Support
 
 For issues related to:
-- **Permissions:** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Permissions:** See [troubleshooting.md](troubleshooting.md)
 - **Installation failures:** Check console with `virsh console faceid`
 - **Network issues:** Verify with `virsh net-list --all`
 - **Libvirt problems:** Check logs in `/var/log/libvirt/`

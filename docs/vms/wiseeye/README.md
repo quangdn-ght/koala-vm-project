@@ -42,6 +42,8 @@ echo "source $(pwd)/wiseeye-vm-completion.bash" >> ~/.bashrc
 
 ### Backup Operations
 
+Backup đêm + SMB: xem runbook **[backup-restore.md](../../backup-restore.md)** (lịch, kiểm tra hàng ngày, restore khi local đã xóa).
+
 ```bash
 # Create a manual backup
 ./wiseeye-vm backup
@@ -187,13 +189,13 @@ df -h /mnt/data/
 
 ## Related Files
 
-- [wiseeye-vm](wiseeye-vm) - Main VM manager script
-- [scripts/helpers/backup-wiseeye-vm.sh](scripts/helpers/backup-wiseeye-vm.sh) - Backup script
-- [wiseeye-vm-completion.bash](wiseeye-vm-completion.bash) - Bash completion
-- [docs/WISEEYE-DEPLOYMENT.md](docs/WISEEYE-DEPLOYMENT.md) - Deployment guide
+- [wiseeye-vm](../../../wiseeye-vm) - Main VM manager script
+- [scripts/helpers/backup-wiseeye-vm.sh](../../../scripts/helpers/backup-wiseeye-vm.sh) - Backup script
+- [wiseeye-vm-completion.bash](../../../wiseeye-vm-completion.bash) - Bash completion
+- [deployment.md](deployment.md) - Deployment guide
 
 ## See Also
 
-- [FaceID VM Manager](faceid-vm) - Similar tool for FaceID VMs
-- [docs/VM-ACCESS-GUIDE.md](docs/VM-ACCESS-GUIDE.md) - VM access methods
-- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues
+- [FaceID VM Manager](../faceid/README.md) - Similar tool for FaceID VMs
+- [FaceID access](../faceid/access.md) - VM access methods
+- [FaceID troubleshooting](../faceid/troubleshooting.md) - Common issues

@@ -2,18 +2,21 @@
 
 ################################################################################
 # Cleanup Old Backup Files
-# Keeps only backup files from the last 7 days, removes older ones.
-#
-# Backup locations:
-#   /mnt/data/              - faceid.faceid-backup-*, fshare.fshare-backup-*
-#   /mnt/data/snapshot/     - faceid-backup-*, wiseeye-backup-*, fshare-backup-*
-#   /mnt/data/vm-images/    - wiseeye-vm.wiseeye-backup-*, ubuntu-22.04-cloud.wiseeye-backup-*
+# Only /mnt/data/snapshot — keep today's backups, delete files from day 2 onward.
+# Does not touch /mnt/data/vm-images or leftover overlays under /mnt/data/.
 ################################################################################
 
 set -euo pipefail
 
-RETENTION_DAYS="${RETENTION_DAYS:-7}"
-LOG_FILE="/mnt/data/snapshot/cleanup-backups.log"
+HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "${HELPERS_DIR}/backup-lib.sh"
+
+RETENTION_DAYS="${RETENTION_DAYS:-1}"
+if ! [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] || [[ "$RETENTION_DAYS" -lt 1 ]]; then
+    RETENTION_DAYS=1
+fi
+LOG_FILE="${LOG_FILE:-${SNAPSHOT_DIR}/cleanup-backups.log}"
 DRY_RUN="${DRY_RUN:-0}"
 
 # Colors
@@ -30,8 +33,16 @@ log_error()   { echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a 
 
 mkdir -p "$(dirname "$LOG_FILE")"
 
-# Cutoff date string (YYYYMMDD) - files with date < this will be removed
-CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +%Y%m%d)
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    exec sudo bash "$0" "$@"
+fi
+
+acquire_vm_backup_lock 14400 || exit 1
+
+# Cutoff date string (YYYYMMDD) - files with date < this will be removed.
+# RETENTION_DAYS=1 → cutoff=today (keep today only).
+# RETENTION_DAYS=3 → cutoff=today-2 (keep last 3 calendar days).
+CUTOFF_DATE=$(date -d "-$((RETENTION_DAYS - 1)) days" +%Y%m%d)
 
 log_info "=========================================="
 log_info "Cleanup Old Backups (keep last ${RETENTION_DAYS} days)"
@@ -82,38 +93,37 @@ cleanup_dir() {
         fi
 
         if [[ "$date_str" < "$CUTOFF_DATE" ]]; then
+            local base
+            base="$(backup_base_from_name "$basename")"
+            if ! ensure_smb_mounted || ! smb_has_complete_backup "$base"; then
+                log_warning "  KEEP local (no verified SMB copy): $file"
+                (( SKIPPED++ )) || true
+                continue
+            fi
             remove_file "$file"
         fi
     done < <(find "$dir" -maxdepth 1 -name "$pattern" -print0 2>/dev/null)
 }
 
 log_info ""
-log_info "--- /mnt/data (faceid backups) ---"
-cleanup_dir "/mnt/data" "faceid.faceid-backup-*"
+log_info "--- ${SNAPSHOT_DIR} (faceid backups) ---"
+cleanup_dir "$SNAPSHOT_DIR" "faceid-backup-*.xml"
+cleanup_dir "$SNAPSHOT_DIR" "faceid-backup-*.qcow2"
 
 log_info ""
-log_info "--- /mnt/data (fshare backups) ---"
-cleanup_dir "/mnt/data" "fshare.fshare-backup-*"
+log_info "--- ${SNAPSHOT_DIR} (wiseeye backups) ---"
+cleanup_dir "$SNAPSHOT_DIR" "wiseeye-backup-*.xml"
+cleanup_dir "$SNAPSHOT_DIR" "wiseeye-backup-*.qcow2"
 
 log_info ""
-log_info "--- /mnt/data/snapshot (faceid backups) ---"
-cleanup_dir "/mnt/data/snapshot" "faceid-backup-*.xml"
-cleanup_dir "/mnt/data/snapshot" "faceid-backup-*.qcow2"
+log_info "--- ${SNAPSHOT_DIR} (fshare backups) ---"
+cleanup_dir "$SNAPSHOT_DIR" "fshare-backup-*.xml"
+cleanup_dir "$SNAPSHOT_DIR" "fshare-backup-*.qcow2"
 
 log_info ""
-log_info "--- /mnt/data/snapshot (wiseeye backups) ---"
-cleanup_dir "/mnt/data/snapshot" "wiseeye-backup-*.xml"
-cleanup_dir "/mnt/data/snapshot" "wiseeye-backup-*.qcow2"
-
-log_info ""
-log_info "--- /mnt/data/snapshot (fshare backups) ---"
-cleanup_dir "/mnt/data/snapshot" "fshare-backup-*.xml"
-cleanup_dir "/mnt/data/snapshot" "fshare-backup-*.qcow2"
-
-log_info ""
-log_info "--- /mnt/data/vm-images (wiseeye backups) ---"
-cleanup_dir "/mnt/data/vm-images" "wiseeye-vm.wiseeye-backup-*"
-cleanup_dir "/mnt/data/vm-images" "ubuntu-22.04-cloud.wiseeye-backup-*"
+log_info "--- ${SNAPSHOT_DIR} (kong-gateway backups) ---"
+cleanup_dir "$SNAPSHOT_DIR" "kong-gateway-backup-*.xml"
+cleanup_dir "$SNAPSHOT_DIR" "kong-gateway-backup-*.qcow2"
 
 log_info ""
 log_info "=========================================="

@@ -9,13 +9,8 @@ Automated Ubuntu 16.04 VM deployment system for FaceID servers using KVM/QEMU wi
 ├── faceid-vm              # Main entry point script
 ├── config/                # Configuration files
 │   └── preseed.cfg       # Ubuntu automated installation config
-├── docs/                  # Documentation
-│   ├── README.md         # Main documentation
-│   ├── INSTALL-GUIDE.md  # Installation guide
-│   ├── VM-ACCESS-GUIDE.md # VM access methods
-│   ├── TROUBLESHOOTING.md # Troubleshooting guide
-│   ├── SUMMARY.txt       # Project summary
-│   └── tasks/            # Task tracking
+├── docs/                  # See docs/README.md for the catalog
+│   └── vms/faceid/       # This folder
 ├── env/                   # Environment setup scripts
 │   ├── install-env.sh    # Install dependencies
 │   └── webmin.sh         # Webmin setup
@@ -84,6 +79,16 @@ Automated Ubuntu 16.04 VM deployment system for FaceID servers using KVM/QEMU wi
 ./faceid-vm help              # Show help
 ```
 
+### Backup và restore
+
+Lịch tự động, SMB 7 ngày, và các bước khôi phục khi sự cố: **[backup-restore.md](../../backup-restore.md)**.
+
+```bash
+./faceid-vm backup
+./faceid-vm list-backups
+./faceid-vm restore 20260906-000001
+```
+
 ## 🔧 Initial Setup
 
 ### 1. Install Dependencies
@@ -116,10 +121,11 @@ Mounts and configures `/mnt/data` for VM disk storage.
 
 ## 📖 Documentation
 
-- **[README.md](docs/README.md)** - Main documentation
-- **[INSTALL-GUIDE.md](docs/INSTALL-GUIDE.md)** - Detailed installation guide
-- **[VM-ACCESS-GUIDE.md](docs/VM-ACCESS-GUIDE.md)** - VM access methods and troubleshooting
-- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[README.md](README.md)** — CLI and overview (this file)
+- **[install.md](install.md)** — Unattended installation
+- **[access.md](access.md)** — SSH and console access
+- **[troubleshooting.md](troubleshooting.md)** — Common issues
+- Catalog: [docs/README.md](../../README.md)
 
 ## 🛠 Configuration
 
@@ -214,7 +220,7 @@ virsh undefine faceid --remove-all-storage
 ./faceid-vm create
 ```
 
-See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more solutions.
+See [troubleshooting.md](troubleshooting.md) for more solutions.
 
 ## 📝 Notes
 
@@ -235,8 +241,8 @@ passwd
 ## 🤝 Support
 
 For issues or questions:
-1. Check [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-2. Review [VM-ACCESS-GUIDE.md](docs/VM-ACCESS-GUIDE.md)
+1. Check [troubleshooting.md](troubleshooting.md)
+2. Review [access.md](access.md)
 3. Check installation logs: `virsh console faceid`
 
 ---

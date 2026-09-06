@@ -400,7 +400,7 @@ For issues or questions:
 1. Check logs: `journalctl -u fstrim.service`
 2. Verify configuration: `virsh dumpxml faceid | grep discard`
 3. Review this README for troubleshooting steps
-4. Check detailed report: `/home/ght/deploy/report/faceid-vm-analysis-and-compaction-*.md`
+4. Check detailed report: `/home/ght/deploy/docs/reports/2026-01-06-faceid-compaction.md`
 
 ## References
 

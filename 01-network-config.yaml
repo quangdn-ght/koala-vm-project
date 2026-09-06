@@ -2,7 +2,7 @@
 # Updated on Fri Dec 27 2025
 #
 # enp3s0: Bridged to br1 with static IP 192.168.3.100/24 (no gateway)
-# br0: Bridge for VM networking (using eno1) with static IP 10.168.1.101/24
+# br0: Bridge for VM networking (using enp1s0f0) with static IP 10.168.1.101/24
 
 network:
   version: 2
@@ -13,13 +13,16 @@ network:
       dhcp4: no
       dhcp6: no
     
-    eno1:
+    enp1s0f0:
+      match:
+        name: enp1s0f0
+      set-name: enp1s0f0
       dhcp4: no
       dhcp6: no
   
   bridges:
     br0:
-      interfaces: [eno1]
+      interfaces: [enp1s0f0]
       dhcp4: no
       dhcp6: no
       addresses:

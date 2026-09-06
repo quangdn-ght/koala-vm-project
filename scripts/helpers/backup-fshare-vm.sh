@@ -1,11 +1,15 @@
 #!/bin/bash
 
 ################################################################################
-# FShare VM Automatic Backup Script
-# Creates daily backups of VM disk and configuration
+# Kong (FShare) VM Automatic Backup Script
+# Creates daily backups of kong-gateway disk and libvirt XML
 ################################################################################
 
 set -e
+
+HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "${HELPERS_DIR}/backup-lib.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -31,21 +35,23 @@ log_warning() {
 }
 
 # Configuration
-VM_NAME="fshare"
+VM_NAME="kong-gateway"
 SOURCE_DISK="/mnt/data/${VM_NAME}.qcow2"
 BACKUP_DIR="/mnt/data/snapshot"
 DATE_STAMP=$(date '+%Y%m%d-%H%M%S')
 BACKUP_NAME="${VM_NAME}-backup-${DATE_STAMP}"
-KEEP_BACKUPS=3  # Keep last 3 backups to save storage space
+KEEP_BACKUPS=1  # Keep only the latest 1 backup to save storage space
 
 # Log file
-LOG_FILE="${BACKUP_DIR}/backup-fshare.log"
+LOG_FILE="${BACKUP_DIR}/backup-kong-gateway.log"
 
 # Redirect all output to log file
 exec > >(tee -a "$LOG_FILE") 2>&1
 
+acquire_vm_backup_lock 7200 || exit 1
+
 log_info "=========================================="
-log_info "FShare VM Backup Starting"
+log_info "Kong (kong-gateway) VM Backup Starting"
 log_info "=========================================="
 
 # Check if VM exists
@@ -117,16 +123,9 @@ else
     exit 1
 fi
 
-# Cleanup old backups (keep last N backups)
-log_info "Cleaning up old backups (keeping last ${KEEP_BACKUPS} to save storage space)..."
-cd "$BACKUP_DIR"
-ls -t ${VM_NAME}-backup-*.qcow2 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | while read OLD_BACKUP; do
-    log_warning "Removing old backup: $OLD_BACKUP"
-    rm -f "$OLD_BACKUP"
-    rm -f "${OLD_BACKUP%.qcow2}.xml"
-    REMOVED_SIZE=$(echo "$OLD_BACKUP" | awk '{print "~500GB"}')
-    log_success "Freed storage space: $REMOVED_SIZE"
-done
+# Local delete is deferred to cleanup-old-backups.sh (22:00) so midnight
+# backup does not contend with VM I/O by unlinking large qcow2 files.
+log_info "Skipping local cleanup here (runs at 22:00 after SMB sync)"
 
 # Show available backups
 log_info "Available backups:"

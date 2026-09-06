@@ -109,11 +109,11 @@ docker-compose up -d
    - Purpose: Orchestrates entire deployment process
 
 5. **Documentation**
-   - Path: `/home/ght/deploy/docs/WISEEYE-DEPLOYMENT.md`
+   - Path: `/home/ght/deploy/docs/vms/wiseeye/deployment.md`
    - Purpose: Complete deployment guide
 
 6. **This Task File**
-   - Path: `/home/ght/deploy/docs/tasks/wiseeye-vm-task.md`
+   - Path: `/home/ght/deploy/docs/tasks/wiseeye-vm.md`
    - Purpose: Quick task reference
 
 ### Application Files (Already Exist)

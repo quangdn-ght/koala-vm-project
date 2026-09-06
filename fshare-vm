@@ -92,11 +92,11 @@ create_fshare_vm() {
     log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
 # VM Configuration
-VM_NAME="fshare"
+VM_NAME="kong-gateway"
 RAM="8192"
 VCPUS="8"
 DISK_SIZE="100G"
-DISK_PATH="/mnt/data/${VM_NAME}.qcow2"
+DISK_PATH="/mnt/data/kong-gateway.qcow2"
 CLOUD_IMG="/mnt/data/vm-images/ubuntu-22.04-cloud.img"
 CLOUD_INIT_DIR="/tmp/fshare-cloud-init-$$"
 DEPLOY_SCRIPT_SRC="/home/ght/deploy/env/ubuntu-22.04/install-env-22.04.sh"
@@ -447,7 +447,7 @@ log_success "Installation complete! 🚀"
 }
 
 # Main command router
-VM_NAME="fshare"
+VM_NAME="kong-gateway"
 IP_PRIMARY="10.168.1.104"
 IP_SECONDARY="192.168.3.104"
 
@@ -554,8 +554,8 @@ case "${1:-}" in
         echo -e "${GREEN}Available backups in /mnt/data/snapshot:${NC}"
         if [ -d /mnt/data/snapshot ]; then
             cd /mnt/data/snapshot
-            ls -lth fshare-backup-*.qcow2 2>/dev/null | head -20
-            ls -lth fshare-backup-*.xml 2>/dev/null | head -20
+            ls -lth kong-gateway-backup-*.qcow2 2>/dev/null | head -20
+            ls -lth kong-gateway-backup-*.xml 2>/dev/null | head -20
             if [ $? -ne 0 ]; then
                 echo -e "${YELLOW}No backups found${NC}"
             fi
@@ -570,13 +570,13 @@ case "${1:-}" in
             echo "Example: ./fshare-vm restore 20260105-120000"
             echo ""
             echo -e "${GREEN}Available backups:${NC}"
-            ls -1 /mnt/data/snapshot/fshare-backup-*.qcow2 2>/dev/null | sed 's/.*fshare-backup-\(.*\)\.qcow2/\1/' || echo -e "${YELLOW}No backups found${NC}"
+            ls -1 /mnt/data/snapshot/kong-gateway-backup-*.qcow2 2>/dev/null | sed 's/.*kong-gateway-backup-\(.*\)\.qcow2/\1/' || echo -e "${YELLOW}No backups found${NC}"
             exit 1
         fi
         
         BACKUP_TIMESTAMP="$2"
-        BACKUP_DISK="/mnt/data/snapshot/fshare-backup-${BACKUP_TIMESTAMP}.qcow2"
-        BACKUP_XML="/mnt/data/snapshot/fshare-backup-${BACKUP_TIMESTAMP}.xml"
+        BACKUP_DISK="/mnt/data/snapshot/kong-gateway-backup-${BACKUP_TIMESTAMP}.qcow2"
+        BACKUP_XML="/mnt/data/snapshot/kong-gateway-backup-${BACKUP_TIMESTAMP}.xml"
         
         if [ ! -f "$BACKUP_DISK" ] || [ ! -f "$BACKUP_XML" ]; then
             echo -e "${RED}Error: Backup not found for timestamp: $BACKUP_TIMESTAMP${NC}"

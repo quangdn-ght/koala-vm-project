@@ -319,7 +319,7 @@ For issues or questions:
 - Check logs: `docker-compose logs -f`
 - Verify VM status: `virsh dominfo wiseeye`
 - Check network: `ping <VM_IP>`
-- Review this guide: `/home/ght/deploy/docs/WISEEYE-DEPLOYMENT.md`
+- Review this guide: `/home/ght/deploy/docs/vms/wiseeye/deployment.md`
 
 ---
 

@@ -98,13 +98,13 @@ Completion is automatically loaded from `~/.bashrc`
 
 ## Files Modified
 
-1. **[fshare-vm](fshare-vm)** - Main management CLI script
+1. **[fshare-vm](../../../fshare-vm)** - Main management CLI script
    - Added show_help() function
    - Moved VM creation to create_fshare_vm() function
    - Added command router with case statement
    - Added all management commands
 
-2. **[fshare-vm-completion.bash](fshare-vm-completion.bash)** - Bash completion
+2. **[fshare-vm-completion.bash](../../../fshare-vm-completion.bash)** - Bash completion
    - Complete command list
    - Backup timestamp completion for restore
    - Registered for both `./fshare-vm` and `fshare-vm`

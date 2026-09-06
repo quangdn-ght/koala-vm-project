@@ -479,7 +479,7 @@ virsh dominfo faceid
 
 ### C. Related Documentation
 
-- Main guide: `/home/ght/deploy/docs/README.md`
+- Main guide: `/home/ght/deploy/docs/vms/faceid/README.md`
 - VM creation: `/home/ght/deploy/scripts/vm/create-faceid-vm.sh`
 - Preseed config: `/home/ght/deploy/config/preseed.cfg`
 - Backup script: `/home/ght/deploy/scripts/helpers/backup-faceid-vm.sh`

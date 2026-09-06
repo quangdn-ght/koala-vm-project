@@ -1,3 +1,7 @@
+NOTE: Historical snapshot. Credentials and paths may be outdated.
+      Current FaceID docs: docs/vms/faceid/README.md
+      Catalog:             docs/README.md
+
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                 FaceID VM - Automated Deployment System                      ║
 ║                      Ubuntu 16.04 on KVM/QEMU                                ║
@@ -59,12 +63,12 @@
   CONFIGURATION:
     preseed.cfg             - Automated installation configuration
     
-  DOCUMENTATION:
-    README.md               - Complete overview and quick start
-    INSTALL-GUIDE.md        - Detailed installation guide
-    TROUBLESHOOTING.md      - Permission fixes and troubleshooting
-    task.md                 - Original requirements
-    SUMMARY.txt             - This file
+  DOCUMENTATION (paths as of docs reorg):
+    docs/vms/faceid/README.md           - Complete overview and quick start
+    docs/vms/faceid/install.md          - Detailed installation guide
+    docs/vms/faceid/troubleshooting.md  - Permission fixes and troubleshooting
+    docs/tasks/kvm-host-setup.md        - Original requirements
+    docs/vms/faceid/SUMMARY.txt         - This file (historical snapshot)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 COMMON TASKS
@@ -128,7 +132,7 @@
     sudo tail -f /var/log/libvirt/qemu/faceid.log
 
   Full Troubleshooting Guide:
-    See TROUBLESHOOTING.md
+    See docs/vms/faceid/troubleshooting.md
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 INSTALLATION PROCESS
@@ -187,7 +191,7 @@
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💡 TIP: Read README.md for complete documentation
+💡 TIP: Read docs/vms/faceid/README.md for complete documentation
 
 �� Ready to deploy! Run: ./create-faceid-vm.sh
 

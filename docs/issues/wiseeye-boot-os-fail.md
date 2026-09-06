@@ -1,4 +1,10 @@
-Summary
+# WiseEye: boot OS fail after restore
+
+**VM:** wiseeye  
+**Status:** resolved (keep working disk)
+
+## Summary
+
 Why the wiseeye VM didn't use the qcow2 file in data:
 
 When you restored from the backup XML configuration, it contained a reference to the old disk path (ubuntu-22.04-cloud.img), not wiseeye.qcow2.

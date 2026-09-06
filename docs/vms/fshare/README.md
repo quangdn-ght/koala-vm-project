@@ -82,6 +82,16 @@ ssh ght@192.168.3.104
 
 **Password**: `1` (SSH key also configured for passwordless access)
 
+## Backup và restore
+
+VM libvirt tên `kong-gateway`. Backup đêm + SMB 7 ngày, restore khi sự cố: **[backup-restore.md](../../backup-restore.md)**.
+
+```bash
+./fshare-vm backup
+./fshare-vm list-backups
+./fshare-vm restore 20260907-000001
+```
+
 ## Post-Installation Setup
 
 ### 1. Run Environment Setup Script
@@ -182,7 +192,7 @@ virsh dominfo fshare
 /home/ght/deploy/
 ├── fshare-vm                              # Main VM creation script (cloud-init)
 ├── fshare-vm-completion.bash              # Bash completion
-├── FSHARE-VM-GUIDE.md                     # This guide
+├── docs/vms/fshare/README.md              # This guide
 └── scripts/helpers/
     └── manage-fshare.sh                   # VM management helper
 
