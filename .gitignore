@@ -25,3 +25,7 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Monitoring secrets and downloaded binaries
+monitoring/.env
+monitoring/cache/

@@ -1,0 +1,104 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: ght-faceid-server
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          role: monitoring
+
+  - job_name: host
+    static_configs:
+      - targets: ["host.docker.internal:9100"]
+        labels:
+          instance: ght-faceid-server
+          role: hypervisor
+          vm: hypervisor
+
+  - job_name: libvirt
+    static_configs:
+      - targets: ["host.docker.internal:9177"]
+        labels:
+          instance: ght-faceid-server
+          role: hypervisor
+    metric_relabel_configs:
+      - source_labels: [domain]
+        regex: "(.*)"
+        replacement: "${1}"
+        target_label: vm
+
+  - job_name: nodes
+    static_configs:
+      - targets: ["10.168.1.104:9100"]
+        labels: {vm: kong-gateway, ip: "10.168.1.104", role: guest}
+      - targets: ["10.168.1.55:9100"]
+        labels: {vm: faceid, ip: "10.168.1.55", role: guest}
+      - targets: ["10.168.1.56:9100"]
+        labels: {vm: wiseeye, ip: "10.168.1.56", role: guest}
+      - targets: ["10.168.1.58:9100"]
+        labels: {vm: unilever, ip: "10.168.1.58", role: guest}
+      - targets: ["10.168.1.59:9100"]
+        labels: {vm: chebichat, ip: "10.168.1.59", role: guest}
+      - targets: ["10.168.1.106:9100"]
+        labels: {vm: nx-vms, ip: "10.168.1.106", role: guest}
+    relabel_configs:
+      - source_labels: [vm]
+        target_label: instance
+
+  - job_name: blackbox-icmp
+    metrics_path: /probe
+    params:
+      module: [icmp]
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/icmp.yml]
+        refresh_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: host.docker.internal:9115
+
+  - job_name: blackbox-ssh
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/ssh.yml]
+        refresh_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: host.docker.internal:9115
+
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/http.yml]
+        refresh_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: host.docker.internal:9115

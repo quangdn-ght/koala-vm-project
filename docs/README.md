@@ -30,6 +30,7 @@ docs/
 | Tài liệu | Đối tượng | Nội dung |
 |----------|-----------|----------|
 | [backup-restore.md](backup-restore.md) | Nhân sự vận hành | Lịch backup 3 VM, kiểm tra hàng ngày, restore local/SMB, sự cố |
+| [../monitoring/README.md](../monitoring/README.md) | Monitoring | Prometheus + Grafana (Docker): fleet VM, host, ICMP/SSH/HTTP. UI http://10.168.1.2:3000 |
 
 ## VMs
 

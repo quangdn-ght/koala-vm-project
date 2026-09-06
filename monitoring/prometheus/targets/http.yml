@@ -1,0 +1,18 @@
+- targets: ["http://10.168.1.104:8001/status"]
+  labels: {vm: kong-gateway, app: kong-status, role: guest}
+
+- targets: ["http://10.168.1.55/"]
+  labels: {vm: faceid, app: faceid-web, role: guest}
+
+- targets: ["http://10.168.1.56:3128/"]
+  labels: {vm: wiseeye, app: wiseeye-frontend, role: guest}
+- targets: ["http://10.168.1.56:3003/docs"]
+  labels: {vm: wiseeye, app: wiseeye-backend, role: guest}
+
+- targets: ["http://10.168.1.59:3000/"]
+  labels: {vm: chebichat, app: chebichat-web, role: guest}
+- targets: ["http://10.168.1.59:3001/"]
+  labels: {vm: chebichat, app: chebichat-web-vi, role: guest}
+
+- targets: ["http://10.168.1.106:8000/"]
+  labels: {vm: nx-vms, app: nx-vms-web, role: guest}

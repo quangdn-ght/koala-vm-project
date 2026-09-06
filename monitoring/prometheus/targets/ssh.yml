@@ -1,0 +1,12 @@
+- targets: ["10.168.1.104:22"]
+  labels: {vm: kong-gateway, role: guest}
+- targets: ["10.168.1.55:22"]
+  labels: {vm: faceid, role: guest}
+- targets: ["10.168.1.56:22"]
+  labels: {vm: wiseeye, role: guest}
+- targets: ["10.168.1.58:22"]
+  labels: {vm: unilever, role: guest}
+- targets: ["10.168.1.59:22"]
+  labels: {vm: chebichat, role: guest}
+- targets: ["10.168.1.106:22"]
+  labels: {vm: nx-vms, role: guest}

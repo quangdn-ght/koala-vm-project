@@ -1,0 +1,208 @@
+groups:
+  - name: recording
+    interval: 15s
+    rules:
+      - record: vm:cpu_usage_ratio
+        expr: |
+          label_replace(
+            rate(libvirt_domain_info_cpu_time_seconds_total[2m])
+            / clamp_min(libvirt_domain_info_virtual_cpus, 1),
+            "vm", "$1", "domain", "(.*)"
+          )
+
+      - record: vm:rss_bytes
+        expr: |
+          label_replace(libvirt_domain_memory_stats_rss_bytes, "vm", "$1", "domain", "(.*)")
+
+      - record: guest:root_disk_used_ratio
+        expr: |
+          1 - (
+            node_filesystem_avail_bytes{role="guest",fstype!~"tmpfs|overlay|squashfs|nsfs",mountpoint="/"}
+            /
+            node_filesystem_size_bytes{role="guest",fstype!~"tmpfs|overlay|squashfs|nsfs",mountpoint="/"}
+          )
+
+      - record: guest:mem_used_ratio
+        expr: |
+          1 - (
+            node_memory_MemAvailable_bytes{role="guest"}
+            /
+            node_memory_MemTotal_bytes{role="guest"}
+          )
+
+  - name: host
+    rules:
+      - alert: HostSwapFull
+        expr: (node_memory_SwapTotal_bytes{role="hypervisor"} > 0) and ((1 - node_memory_SwapFree_bytes{role="hypervisor"} / node_memory_SwapTotal_bytes{role="hypervisor"}) > 0.5)
+        for: 5m
+        labels:
+          severity: critical
+          vm: hypervisor
+        annotations:
+          summary: "Host swap > 50%"
+          description: "ght-faceid-server swap is {{ $value | humanizePercentage }} used. RAM overcommit — VMs may stall."
+
+      - alert: HostMemLow
+        expr: node_memory_MemAvailable_bytes{role="hypervisor"} < 4 * 1024 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: critical
+          vm: hypervisor
+        annotations:
+          summary: "Host available RAM < 4 GiB"
+          description: "MemAvailable is {{ $value | humanize1024 }}B on the KVM host."
+
+      - alert: HostLoadHigh
+        expr: node_load15{role="hypervisor"} / count without(cpu, mode) (node_cpu_seconds_total{role="hypervisor",mode="idle"}) > 1.2
+        for: 10m
+        labels:
+          severity: warning
+          vm: hypervisor
+        annotations:
+          summary: "Host load15 above CPU count"
+          description: "load15/CPU = {{ $value | humanize }}."
+
+      - alert: HostDataDiskSpace
+        expr: (node_filesystem_avail_bytes{role="hypervisor",mountpoint="/mnt/data"} / node_filesystem_size_bytes{role="hypervisor",mountpoint="/mnt/data"}) < 0.2
+        for: 5m
+        labels:
+          severity: warning
+          vm: hypervisor
+        annotations:
+          summary: "/mnt/data < 20% free"
+          description: "VM disks live on /mnt/data. Free ratio {{ $value | humanizePercentage }}."
+
+      - alert: HostDataDiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{role="hypervisor",mountpoint="/mnt/data"} / node_filesystem_size_bytes{role="hypervisor",mountpoint="/mnt/data"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          vm: hypervisor
+        annotations:
+          summary: "/mnt/data < 10% free"
+          description: "Host data disk almost full. Free ratio {{ $value | humanizePercentage }}."
+
+      - alert: HostRootDiskSpace
+        expr: (node_filesystem_avail_bytes{role="hypervisor",mountpoint="/"} / node_filesystem_size_bytes{role="hypervisor",mountpoint="/"}) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          vm: hypervisor
+        annotations:
+          summary: "Host / < 15% free"
+
+      - alert: LibvirtExporterDown
+        expr: up{job="libvirt"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          vm: hypervisor
+        annotations:
+          summary: "libvirt-exporter is down"
+
+      - alert: NodeExporterHostDown
+        expr: up{job="host"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          vm: hypervisor
+        annotations:
+          summary: "Host node_exporter is down"
+
+  - name: vms
+    rules:
+      - alert: VMDown
+        expr: libvirt_domain_info_state{vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} != 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VM {{ $labels.vm }} is not running"
+          description: "libvirt state code {{ $value }} (1=running). Production VM should be up."
+
+      - alert: VMDownOptional
+        expr: libvirt_domain_info_state{vm="unilever"} != 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VM unilever is not running"
+          description: "Autostart is enabled; VM is shut off or crashed. Not in the production-critical set."
+
+      - alert: GuestUnreachable
+        expr: probe_success{job="blackbox-icmp",role="guest",vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ICMP fail: {{ $labels.vm }}"
+          description: "Guest does not answer ping from the host."
+
+      - alert: SSHDown
+        expr: probe_success{job="blackbox-ssh",vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSH :22 closed on {{ $labels.vm }}"
+
+      - alert: AppHTTPDown
+        expr: probe_success{job="blackbox-http"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP down: {{ $labels.app }} on {{ $labels.vm }}"
+          description: "Blackbox probe of {{ $labels.instance }} failed."
+
+      - alert: GuestNodeExporterDown
+        expr: up{job="nodes",vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "node_exporter down on {{ $labels.vm }}"
+          description: "Guest OS metrics missing. VM may still be up (check ICMP/libvirt)."
+
+      - alert: GuestDiskFull
+        expr: guest:root_disk_used_ratio > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.vm }} root disk > 85%"
+          description: "Used ratio {{ $value | humanizePercentage }}."
+
+      - alert: GuestDiskFullCritical
+        expr: guest:root_disk_used_ratio > 0.95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.vm }} root disk > 95%"
+
+      - alert: GuestMemHigh
+        expr: guest:mem_used_ratio > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.vm }} RAM > 90%"
+          description: "Guest MemAvailable is low ({{ $value | humanizePercentage }} used)."
+
+      - alert: GuestCPUHigh
+        expr: vm:cpu_usage_ratio > 0.9
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.vm }} vCPU > 90%"
+          description: "libvirt CPU time / vCPU count = {{ $value | humanizePercentage }}."
+
+      - alert: InfraUnreachable
+        expr: probe_success{job="blackbox-icmp",role="infra"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Infra ping fail: {{ $labels.vm }}"
