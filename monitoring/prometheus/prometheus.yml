@@ -25,6 +25,7 @@ scrape_configs:
       - targets: ["host.docker.internal:9100"]
         labels:
           instance: ght-faceid-server
+          host: ght-faceid-server
           role: hypervisor
           vm: hypervisor
 
@@ -58,12 +59,28 @@ scrape_configs:
       - source_labels: [vm]
         target_label: instance
 
+  - job_name: physical
+    static_configs:
+      - targets: ["10.168.1.5:9100"]
+        labels: {host: gx10-b273, ip: "10.168.1.5", role: physical}
+      - targets: ["10.168.1.50:9100"]
+        labels: {host: GHT-Koala-01, ip: "10.168.1.50", role: physical}
+      - targets: ["10.168.1.51:9100"]
+        labels: {host: intel-nuc7, ip: "10.168.1.51", role: physical}
+      - targets: ["10.168.1.54:9100"]
+        labels: {host: ght-demo-server, ip: "10.168.1.54", role: physical}
+      - targets: ["192.168.3.101:9100"]
+        labels: {host: ght-dev-server, ip: "192.168.3.101", role: physical}
+    relabel_configs:
+      - source_labels: [host]
+        target_label: instance
+
   - job_name: blackbox-icmp
     metrics_path: /probe
     params:
       module: [icmp]
     file_sd_configs:
-      - files: [/etc/prometheus/targets/icmp.yml]
+      - files: [/etc/prometheus/targets/icmp*.yml]
         refresh_interval: 30s
     relabel_configs:
       - source_labels: [__address__]
@@ -78,7 +95,7 @@ scrape_configs:
     params:
       module: [tcp_connect]
     file_sd_configs:
-      - files: [/etc/prometheus/targets/ssh.yml]
+      - files: [/etc/prometheus/targets/ssh*.yml]
         refresh_interval: 30s
     relabel_configs:
       - source_labels: [__address__]
@@ -93,7 +110,7 @@ scrape_configs:
     params:
       module: [http_2xx]
     file_sd_configs:
-      - files: [/etc/prometheus/targets/http.yml]
+      - files: [/etc/prometheus/targets/http*.yml]
         refresh_interval: 30s
     relabel_configs:
       - source_labels: [__address__]
@@ -102,3 +119,41 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: host.docker.internal:9115
+
+  # Megvii AI Box — inventory: aibox/devices.json (regen: scripts/gen-aibox-targets.py)
+  # Change scrape_interval here; keep aibox/devices.json scrape_interval in sync.
+  - job_name: aibox
+    scrape_interval: 1m
+    scrape_timeout: 20s
+    metrics_path: /probe
+    params:
+      module: [megbox]
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/aibox.yml]
+        refresh_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: json-exporter:7979
+
+  # Oraybox / 蒲公英 — inventory: oraybox/devices.json (regen: scripts/gen-oraybox-targets.py)
+  # LAN ether_status only. Change scrape_interval here; keep devices.json in sync.
+  - job_name: oraybox
+    scrape_interval: 1m
+    scrape_timeout: 20s
+    metrics_path: /probe
+    params:
+      module: [oraybox]
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/oraybox.yml]
+        refresh_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: json-exporter:7979

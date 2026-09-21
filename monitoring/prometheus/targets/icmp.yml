@@ -14,3 +14,13 @@
   labels: {vm: gateway, role: infra}
 - targets: ["10.168.1.3"]
   labels: {vm: nas-backup, role: infra}
+- targets: ["10.168.1.5"]
+  labels: {host: gx10-b273, role: physical}
+- targets: ["10.168.1.50"]
+  labels: {host: GHT-Koala-01, role: physical}
+- targets: ["10.168.1.51"]
+  labels: {host: intel-nuc7, role: physical}
+- targets: ["10.168.1.54"]
+  labels: {host: ght-demo-server, role: physical}
+- targets: ["192.168.3.101"]
+  labels: {host: ght-dev-server, role: physical}

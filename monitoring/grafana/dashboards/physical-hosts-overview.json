@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "All guests + hypervisor: libvirt, node_exporter, ICMP/SSH/HTTP. Refresh 10s.",
+  "description": "LAN bare-metal Ubuntu hosts (not the KVM hypervisor). CPU/RAM/disk + ICMP/SSH. Refresh 10s.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -57,7 +57,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Host (ght-faceid-server)",
+      "title": "Physical hosts (excl. KVM hypervisor 10.168.1.2)",
       "type": "row",
       "gridPos": {
         "h": 1,
@@ -70,7 +70,7 @@
     },
     {
       "id": 2,
-      "title": "Host CPU",
+      "title": "Hosts up (exporter)",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -88,8 +88,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (1 - avg without (cpu,mode) (rate(node_cpu_seconds_total{role=\"hypervisor\",mode=\"idle\"}[2m])))",
-          "legendFormat": "CPU",
+          "expr": "count(up{job=\"physical\"} == 1) or vector(0)",
+          "legendFormat": "up",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -98,7 +98,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
+          "unit": "none",
           "color": {
             "mode": "thresholds"
           },
@@ -106,16 +106,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
                 "color": "yellow",
-                "value": 70
+                "value": 4
               },
               {
-                "color": "red",
-                "value": 90
+                "color": "green",
+                "value": 5
               }
             ]
           },
@@ -140,306 +140,13 @@
     },
     {
       "id": 3,
-      "title": "Host RAM",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 1
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "1 - (node_memory_MemAvailable_bytes{role=\"hypervisor\"} / node_memory_MemTotal_bytes{role=\"hypervisor\"})",
-          "legendFormat": "RAM",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.75
-              },
-              {
-                "color": "red",
-                "value": 0.9
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 4,
-      "title": "Host swap",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 1
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "(node_memory_SwapTotal_bytes{role=\"hypervisor\"} - node_memory_SwapFree_bytes{role=\"hypervisor\"}) / clamp_min(node_memory_SwapTotal_bytes{role=\"hypervisor\"}, 1)",
-          "legendFormat": "swap",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.2
-              },
-              {
-                "color": "red",
-                "value": 0.5
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 5,
-      "title": "/mnt/data used",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 1
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "1 - (node_filesystem_avail_bytes{role=\"hypervisor\",mountpoint=\"/mnt/data\"} / node_filesystem_size_bytes{role=\"hypervisor\",mountpoint=\"/mnt/data\"})",
-          "legendFormat": "disk",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.8
-              },
-              {
-                "color": "red",
-                "value": 0.9
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 6,
-      "title": "Fleet health",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 5
-      },
-      "collapsed": false,
-      "panels": []
-    },
-    {
-      "id": 7,
-      "title": "VMs running (libvirt state=1)",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 6
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(libvirt_domain_info_state == 1) or vector(0)",
-          "legendFormat": "running",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "green",
-                "value": 6
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 8,
       "title": "ICMP OK",
       "type": "stat",
       "gridPos": {
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 6
+        "y": 1
       },
       "datasource": {
         "type": "prometheus",
@@ -451,7 +158,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(probe_success{job=\"blackbox-icmp\",role=\"guest\"} == 1) or vector(0)",
+          "expr": "count(probe_success{job=\"blackbox-icmp\",role=\"physical\"} == 1) or vector(0)",
           "legendFormat": "ping",
           "refId": "A",
           "editorMode": "code",
@@ -502,14 +209,14 @@
       }
     },
     {
-      "id": 9,
+      "id": 4,
       "title": "SSH OK",
       "type": "stat",
       "gridPos": {
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 6
+        "y": 1
       },
       "datasource": {
         "type": "prometheus",
@@ -521,7 +228,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(probe_success{job=\"blackbox-ssh\"} == 1) or vector(0)",
+          "expr": "count(probe_success{job=\"blackbox-ssh\",role=\"physical\"} == 1) or vector(0)",
           "legendFormat": "ssh",
           "refId": "A",
           "editorMode": "code",
@@ -572,14 +279,14 @@
       }
     },
     {
-      "id": 10,
-      "title": "HTTP apps OK",
+      "id": 5,
+      "title": "Max RAM used",
       "type": "stat",
       "gridPos": {
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 6
+        "y": 1
       },
       "datasource": {
         "type": "prometheus",
@@ -591,8 +298,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(probe_success{job=\"blackbox-http\"} == 1) or vector(0)",
-          "legendFormat": "http",
+          "expr": "max(physical:mem_used_ratio) or vector(0)",
+          "legendFormat": "ram",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -601,7 +308,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "percentunit",
           "color": {
             "mode": "thresholds"
           },
@@ -609,16 +316,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": null
               },
               {
                 "color": "yellow",
-                "value": 5
+                "value": 0.8
               },
               {
-                "color": "green",
-                "value": 7
+                "color": "red",
+                "value": 0.9
               }
             ]
           },
@@ -642,14 +349,14 @@
       }
     },
     {
-      "id": 11,
-      "title": "All guests \u2014 state, resources, probes (real-time)",
+      "id": 6,
+      "title": "All physical hosts \u2014 CPU, RAM, disk, temp, probes",
       "type": "table",
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 5
       },
       "datasource": {
         "type": "prometheus",
@@ -661,8 +368,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "libvirt_domain_info_state",
-          "legendFormat": "{{vm}}",
+          "expr": "up{job=\"physical\"}",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -674,8 +381,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "libvirt_domain_info_virtual_cpus",
-          "legendFormat": "{{vm}}",
+          "expr": "probe_success{job=\"blackbox-icmp\",role=\"physical\"}",
+          "legendFormat": "{{host}}",
           "refId": "B",
           "editorMode": "code",
           "range": false,
@@ -687,8 +394,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "libvirt_domain_info_maximum_memory_bytes",
-          "legendFormat": "{{vm}}",
+          "expr": "probe_success{job=\"blackbox-ssh\",role=\"physical\"}",
+          "legendFormat": "{{host}}",
           "refId": "C",
           "editorMode": "code",
           "range": false,
@@ -700,86 +407,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "vm:cpu_usage_ratio",
-          "legendFormat": "{{vm}}",
-          "refId": "D",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "libvirt_domain_memory_stats_rss_bytes",
-          "legendFormat": "{{vm}}",
-          "refId": "E",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "probe_success{job=\"blackbox-icmp\",role=\"guest\"}",
-          "legendFormat": "{{vm}}",
-          "refId": "F",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "probe_success{job=\"blackbox-ssh\"}",
-          "legendFormat": "{{vm}}",
-          "refId": "G",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "min by (vm) (probe_success{job=\"blackbox-http\"})",
-          "legendFormat": "{{vm}}",
-          "refId": "H",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "guest:root_disk_used_ratio",
-          "legendFormat": "{{vm}}",
-          "refId": "I",
-          "editorMode": "code",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "guest:mem_used_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "min by (host) (probe_success{job=\"blackbox-http\",role=\"physical\"})",
+          "legendFormat": "{{host}}",
           "refId": "J",
           "editorMode": "code",
           "range": false,
@@ -791,9 +420,100 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "up{job=\"nodes\"}",
-          "legendFormat": "{{vm}}",
+          "expr": "100 * (1 - avg by (host) (rate(node_cpu_seconds_total{role=\"physical\",mode=\"idle\"}[2m])))",
+          "legendFormat": "{{host}}",
+          "refId": "D",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "physical:mem_used_ratio",
+          "legendFormat": "{{host}}",
+          "refId": "E",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "physical:root_disk_used_ratio",
+          "legendFormat": "{{host}}",
+          "refId": "F",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "node_memory_MemTotal_bytes{role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "G",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count without(cpu,mode) (node_cpu_seconds_total{role=\"physical\",mode=\"idle\"})",
+          "legendFormat": "{{host}}",
+          "refId": "H",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "node_uname_info{role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "I",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "physical:cpu_temp_celsius{role=\"physical\"}",
+          "legendFormat": "{{host}}",
           "refId": "K",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "physical:nvme_temp_celsius{role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "L",
           "editorMode": "code",
           "range": false,
           "instant": true,
@@ -810,7 +530,7 @@
         {
           "id": "joinByField",
           "options": {
-            "byField": "vm",
+            "byField": "host",
             "mode": "outer"
           }
         },
@@ -827,45 +547,46 @@
               "Time 6": true,
               "Time 7": true,
               "Time 8": true,
-              "Time 9": true,
-              "Time 10": true,
               "__name__": true,
-              "__name__ 1": true,
               "job": true,
               "instance": true,
               "role": true,
-              "domain": true,
-              "state_desc": true,
-              "ip": true
+              "ip": true,
+              "machine": true,
+              "nodename": true,
+              "release": true,
+              "sysname": true,
+              "version": true,
+              "domainname": true
             },
             "renameByName": {
-              "vm": "VM",
-              "Value": "libvirt_state",
-              "Value #A": "state",
-              "Value #B": "vCPU",
-              "Value #C": "RAM alloc",
-              "Value #D": "CPU",
-              "Value #E": "RSS",
-              "Value #F": "ICMP",
-              "Value #G": "SSH",
-              "Value #H": "HTTP",
-              "Value #I": "disk /",
-              "Value #J": "RAM guest",
-              "Value #K": "node_exporter"
+              "host": "host",
+              "Value #A": "exporter",
+              "Value #B": "ICMP",
+              "Value #C": "SSH",
+              "Value #J": "HTTP",
+              "Value #D": "CPU %",
+              "Value #E": "RAM",
+              "Value #F": "disk /",
+              "Value #G": "RAM total",
+              "Value #H": "CPUs",
+              "Value #I": "uname",
+              "Value #K": "CPU \u00b0C",
+              "Value #L": "NVMe \u00b0C"
             },
             "indexByName": {
-              "VM": 0,
-              "state": 1,
+              "host": 0,
+              "exporter": 1,
               "ICMP": 2,
               "SSH": 3,
               "HTTP": 4,
-              "node_exporter": 5,
-              "vCPU": 6,
-              "CPU": 7,
-              "RAM alloc": 8,
-              "RSS": 9,
-              "RAM guest": 10,
-              "disk /": 11
+              "CPUs": 5,
+              "CPU %": 6,
+              "RAM total": 7,
+              "RAM": 8,
+              "disk /": 9,
+              "CPU \u00b0C": 10,
+              "NVMe \u00b0C": 11
             }
           }
         }
@@ -889,27 +610,27 @@
       }
     },
     {
-      "id": 12,
-      "title": "Per-VM resources",
+      "id": 7,
+      "title": "Resources",
       "type": "row",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 15
       },
       "collapsed": false,
       "panels": []
     },
     {
-      "id": 13,
-      "title": "vCPU usage (libvirt CPU time / vCPU)",
+      "id": 8,
+      "title": "CPU used",
       "type": "bargauge",
       "gridPos": {
         "h": 10,
         "w": 8,
         "x": 0,
-        "y": 21
+        "y": 16
       },
       "datasource": {
         "type": "prometheus",
@@ -921,8 +642,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "vm:cpu_usage_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "1 - avg by (host) (rate(node_cpu_seconds_total{role=\"physical\",mode=\"idle\"}[2m]))",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -972,14 +693,14 @@
       }
     },
     {
-      "id": 14,
-      "title": "Guest RAM used (node_exporter)",
+      "id": 9,
+      "title": "RAM used",
       "type": "bargauge",
       "gridPos": {
         "h": 10,
         "w": 8,
         "x": 8,
-        "y": 21
+        "y": 16
       },
       "datasource": {
         "type": "prometheus",
@@ -991,8 +712,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "guest:mem_used_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "physical:mem_used_ratio",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -1042,14 +763,14 @@
       }
     },
     {
-      "id": 15,
-      "title": "Guest root disk used",
+      "id": 10,
+      "title": "Root disk used",
       "type": "bargauge",
       "gridPos": {
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 21
+        "y": 16
       },
       "datasource": {
         "type": "prometheus",
@@ -1061,8 +782,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "guest:root_disk_used_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "physical:root_disk_used_ratio",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -1112,235 +833,27 @@
       }
     },
     {
-      "id": 16,
-      "title": "Probes over time",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 31
-      },
-      "collapsed": false,
-      "panels": []
-    },
-    {
-      "id": 17,
-      "title": "Libvirt running (1=up)",
-      "type": "state-timeline",
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 32
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "(libvirt_domain_info_state == 1)",
-          "legendFormat": "{{vm}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 70,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "mergeValues": true,
-        "showValue": "never",
-        "alignValue": "center",
-        "rowHeight": 0.9,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      }
-    },
-    {
-      "id": 18,
-      "title": "ICMP",
-      "type": "state-timeline",
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 32
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "probe_success{job=\"blackbox-icmp\",role=\"guest\"}",
-          "legendFormat": "{{vm}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 70,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "mergeValues": true,
-        "showValue": "never",
-        "alignValue": "center",
-        "rowHeight": 0.9,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      }
-    },
-    {
-      "id": 19,
-      "title": "HTTP apps",
-      "type": "state-timeline",
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 32
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "probe_success{job=\"blackbox-http\"}",
-          "legendFormat": "{{vm}} {{app}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 70,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "mergeValues": true,
-        "showValue": "never",
-        "alignValue": "center",
-        "rowHeight": 0.9,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      }
-    },
-    {
-      "id": 20,
+      "id": 11,
       "title": "Trends",
       "type": "row",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 26
       },
       "collapsed": false,
       "panels": []
     },
     {
-      "id": 21,
-      "title": "VM CPU % (libvirt)",
+      "id": 12,
+      "title": "CPU %",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 41
+        "y": 27
       },
       "datasource": {
         "type": "prometheus",
@@ -1352,8 +865,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "vm:cpu_usage_ratio * 100",
-          "legendFormat": "{{vm}}",
+          "expr": "100 * (1 - avg by (host) (rate(node_cpu_seconds_total{role=\"physical\",mode=\"idle\"}[2m])))",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": true,
@@ -1393,14 +906,14 @@
       }
     },
     {
-      "id": 22,
-      "title": "VM RSS (host view)",
+      "id": 13,
+      "title": "RAM used %",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 41
+        "y": 27
       },
       "datasource": {
         "type": "prometheus",
@@ -1412,68 +925,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "libvirt_domain_memory_stats_rss_bytes",
-          "legendFormat": "{{vm}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "fillOpacity": 10,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "axisBorderShow": false,
-            "gradientMode": "none"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "mean",
-            "lastNotNull"
-          ],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 23,
-      "title": "Guest disk / used %",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 49
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "guest:root_disk_used_ratio * 100",
-          "legendFormat": "{{vm}}",
+          "expr": "physical:mem_used_ratio * 100",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": true,
@@ -1513,14 +966,14 @@
       }
     },
     {
-      "id": 24,
-      "title": "VM network RX+TX",
+      "id": 14,
+      "title": "Root disk used %",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 49
+        "x": 0,
+        "y": 35
       },
       "datasource": {
         "type": "prometheus",
@@ -1532,8 +985,68 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (vm) (rate(libvirt_domain_interface_stats_receive_bytes_total[2m]) + rate(libvirt_domain_interface_stats_transmit_bytes_total[2m]))",
-          "legendFormat": "{{vm}}",
+          "expr": "physical:root_disk_used_ratio * 100",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Network RX+TX (non-virtual NICs)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (host) (rate(node_network_receive_bytes_total{role=\"physical\",device!~\"lo|docker.*|br-.*|veth.*|cni.*|tun.*\"}[2m]) + rate(node_network_transmit_bytes_total{role=\"physical\",device!~\"lo|docker.*|br-.*|veth.*|cni.*|tun.*\"}[2m]))",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": true,
@@ -1573,25 +1086,295 @@
       }
     },
     {
-      "id": 25,
-      "title": "Firing alerts",
+      "id": 16,
+      "title": "Exporter up",
+      "type": "state-timeline",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 43
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "up{job=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 17,
+      "title": "ICMP",
+      "type": "state-timeline",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 43
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "probe_success{job=\"blackbox-icmp\",role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 27,
+      "title": "Temperature",
       "type": "row",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 49
       },
       "collapsed": false,
       "panels": []
     },
     {
-      "id": 26,
-      "title": "Prometheus ALERTS (firing)",
-      "type": "table",
+      "id": 28,
+      "title": "CPU / package \u00b0C",
+      "type": "bargauge",
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
+        "x": 0,
+        "y": 50
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "physical:cpu_temp_celsius{role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 75
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 29,
+      "title": "NVMe \u00b0C",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 50
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "physical:nvme_temp_celsius{role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 65
+              },
+              {
+                "color": "red",
+                "value": 75
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 30,
+      "title": "CPU temperature",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
         "x": 0,
         "y": 58
       },
@@ -1605,8 +1388,141 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "ALERTS{alertstate=\"firing\"}",
-          "legendFormat": "{{alertname}} {{vm}}",
+          "expr": "physical:cpu_temp_celsius{role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 31,
+      "title": "NVMe temperature",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "physical:nvme_temp_celsius{role=\"physical\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "title": "Firing alerts",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 19,
+      "title": "Prometheus ALERTS (physical)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 67
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "ALERTS{alertstate=\"firing\",host=~\".+\"}",
+          "legendFormat": "{{alertname}} {{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -1633,9 +1549,8 @@
             "indexByName": {
               "alertname": 0,
               "severity": 1,
-              "vm": 2,
-              "alertstate": 3,
-              "app": 4
+              "host": 2,
+              "alertstate": 3
             }
           }
         }
@@ -1663,7 +1578,7 @@
   "schemaVersion": 39,
   "style": "dark",
   "tags": [
-    "kvm",
+    "physical",
     "overview"
   ],
   "templating": {
@@ -1683,8 +1598,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "KVM Fleet Overview",
-  "uid": "kvm-fleet",
+  "title": "Physical Hosts Overview",
+  "uid": "physical-fleet",
   "version": 1,
   "weekStart": ""
 }

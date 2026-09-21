@@ -1,0 +1,105 @@
+modules:
+  megbox:
+    headers:
+      Accept: application/json
+    metrics:
+      - name: megbox_api_code
+        path: "{.code}"
+        help: MEGBOX API result code (0 = success)
+
+      - name: megbox
+        type: object
+        help: Megvii AI Box identity
+        path: "{.data}"
+        labels:
+          hardware_ver: "{.hardwareVer}"
+          firmware_ver: "{.firmwareVer}"
+          device_model: "{.deviceModel}"
+          device_id: "{.deviceId}"
+          serial_number: "{.serialNumber}"
+          license_key: "{.licenseKey}"
+          megconnect_version: "{.megConnectVersion}"
+        values:
+          info: 1
+          channels: "{.channelNum}"
+
+      - name: megbox
+        type: object
+        help: Megvii AI Box hardwareStatus
+        path: "{.data.hardwareStatus}"
+        values:
+          cpu_usage_percent: "{.cpuUseRate}"
+          cpu_temp_celsius: "{.cpuTemp}"
+          gpu_temp_celsius: "{.gpuTemp}"
+          case_temp_celsius: "{.caseTemp}"
+          memory_size_mib: "{.memSize}"
+          memory_used_mib: "{.memUse}"
+          storage_size_mib: "{.storageSize}"
+          storage_used_mib: "{.storageUseSize}"
+
+      - name: megbox
+        type: object
+        help: Megvii AI Box NTP status
+        path: "{.data.time}"
+        values:
+          ntp_enabled: "{.ntpEnable}"
+          ntp_fail_count: "{.ntpFailCount}"
+
+  # Oraybox / 蒲公英 — GET /cgi-bin/oraybox?_api=ether_status_get
+  # LAN ports only (wan ignored). Port names are object keys, so each
+  # known port is a separate metric path. Inventory: oraybox/devices.json.
+  oraybox:
+    headers:
+      Accept: application/json
+    metrics:
+      - name: oraybox_api_code
+        path: "{.code}"
+        help: Oraybox API result code (0 = success)
+
+      - name: oraybox_lan
+        type: object
+        help: Oraybox LAN port status (WAN ignored)
+        path: "{.ether_status.lan.lan1}"
+        labels:
+          port: lan1
+          speed: "{.speed}"
+          mode: "{.mode}"
+          link: "{.link}"
+        values:
+          info: 1
+
+      - name: oraybox_lan
+        type: object
+        help: Oraybox LAN port status (WAN ignored)
+        path: "{.ether_status.lan.lan2}"
+        labels:
+          port: lan2
+          speed: "{.speed}"
+          mode: "{.mode}"
+          link: "{.link}"
+        values:
+          info: 1
+
+      - name: oraybox_lan
+        type: object
+        help: Oraybox LAN port status (WAN ignored)
+        path: "{.ether_status.lan.lan3}"
+        labels:
+          port: lan3
+          speed: "{.speed}"
+          mode: "{.mode}"
+          link: "{.link}"
+        values:
+          info: 1
+
+      - name: oraybox_lan
+        type: object
+        help: Oraybox LAN port status (WAN ignored)
+        path: "{.ether_status.lan.lan4}"
+        labels:
+          port: lan4
+          speed: "{.speed}"
+          mode: "{.mode}"
+          link: "{.link}"
+        values:
+          info: 1

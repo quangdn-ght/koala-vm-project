@@ -30,6 +30,63 @@ groups:
             node_memory_MemTotal_bytes{role="guest"}
           )
 
+      - record: physical:root_disk_used_ratio
+        expr: |
+          1 - (
+            node_filesystem_avail_bytes{role="physical",fstype!~"tmpfs|overlay|squashfs|nsfs",mountpoint="/"}
+            /
+            node_filesystem_size_bytes{role="physical",fstype!~"tmpfs|overlay|squashfs|nsfs",mountpoint="/"}
+          )
+
+      - record: physical:mem_used_ratio
+        expr: |
+          1 - (
+            node_memory_MemAvailable_bytes{role="physical"}
+            /
+            node_memory_MemTotal_bytes{role="physical"}
+          )
+
+      # Prefer Intel/AMD package (coretemp, dell_smm, x86_pkg). ARM/SoC falls back to acpitz.
+      - record: physical:cpu_temp_celsius
+        expr: |
+          max by (host, instance, job, role) (
+            node_hwmon_temp_celsius{chip=~".*(coretemp|dell_smm).*"}
+            or node_thermal_zone_temp{type="x86_pkg_temp"}
+          )
+          or
+          max by (host, instance, job, role) (
+            node_thermal_zone_temp{type="acpitz"}
+            or node_hwmon_temp_celsius{chip=~"thermal_thermal_zone.*"}
+          )
+
+      - record: physical:nvme_temp_celsius
+        expr: |
+          max by (host, instance, job, role) (
+            node_hwmon_temp_celsius{chip=~"nvme_.*"}
+          )
+
+      - record: physical:temp_max_celsius
+        expr: |
+          max by (host, instance, job, role) (
+            (node_hwmon_temp_celsius > 0) < 120
+          )
+
+      - record: aibox:mem_used_ratio
+        expr: megbox_memory_used_mib / clamp_min(megbox_memory_size_mib, 1)
+
+      - record: aibox:storage_used_ratio
+        expr: megbox_storage_used_mib / clamp_min(megbox_storage_size_mib, 1)
+
+      - record: oraybox:lan_link_up
+        expr: |
+          max by (host, ip, instance, job, role, port, vendor) (
+            oraybox_lan_info{link="up"}
+          )
+          or
+          max by (host, ip, instance, job, role, port, vendor) (
+            oraybox_lan_info * 0
+          )
+
   - name: host
     rules:
       - alert: HostSwapFull
@@ -206,3 +263,254 @@ groups:
           severity: warning
         annotations:
           summary: "Infra ping fail: {{ $labels.vm }}"
+
+  - name: physical
+    rules:
+      - alert: PhysicalUnreachable
+        expr: probe_success{job="blackbox-icmp",role="physical"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ICMP fail: {{ $labels.host }}"
+          description: "Physical host {{ $labels.host }} ({{ $labels.instance }}) does not answer ping."
+
+      - alert: PhysicalSSHDown
+        expr: probe_success{job="blackbox-ssh",role="physical"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSH :22 closed on {{ $labels.host }}"
+
+      - alert: PhysicalNodeExporterDown
+        expr: up{job="physical"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "node_exporter down on {{ $labels.host }}"
+
+      - alert: PhysicalDiskFull
+        expr: physical:root_disk_used_ratio > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} root disk > 85%"
+          description: "Used ratio {{ $value | humanizePercentage }}."
+
+      - alert: PhysicalDiskFullCritical
+        expr: physical:root_disk_used_ratio > 0.95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.host }} root disk > 95%"
+
+      - alert: PhysicalMemHigh
+        expr: physical:mem_used_ratio > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} RAM > 90%"
+
+      - alert: PhysicalSwapFull
+        expr: |
+          (node_memory_SwapTotal_bytes{role="physical"} > 0)
+          and
+          ((1 - node_memory_SwapFree_bytes{role="physical"} / node_memory_SwapTotal_bytes{role="physical"}) > 0.5)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} swap > 50%"
+
+      - alert: PhysicalCPUTempHigh
+        expr: physical:cpu_temp_celsius > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} CPU {{ $value | humanize }}°C"
+          description: "CPU/package temperature above 80°C."
+
+      - alert: PhysicalCPUTempCritical
+        expr: physical:cpu_temp_celsius > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.host }} CPU {{ $value | humanize }}°C (critical)"
+          description: "CPU/package temperature above 90°C."
+
+      - alert: PhysicalNVMeTempHigh
+        expr: physical:nvme_temp_celsius > 70
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} NVMe {{ $value | humanize }}°C"
+          description: "NVMe composite/sensor temperature above 70°C."
+
+      - alert: PhysicalNVMeTempCritical
+        expr: physical:nvme_temp_celsius > 80
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.host }} NVMe {{ $value | humanize }}°C (critical)"
+
+      - alert: PhysicalTempMissing
+        expr: |
+          up{job=~"host|physical"} == 1
+          unless on(host)
+          physical:cpu_temp_celsius
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} has no CPU temperature sensors"
+          description: "node_exporter is up but coretemp/pkg/acpitz readings are missing."
+
+  - name: aibox
+    rules:
+      - alert: AiBoxUnreachable
+        expr: probe_success{job="blackbox-icmp",role="aibox"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ICMP fail: {{ $labels.host }}"
+          description: "Megvii AI Box {{ $labels.host }} ({{ $labels.instance }}) does not answer ping."
+
+      - alert: AiBoxApiDown
+        expr: probe_success{job="blackbox-http",role="aibox"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MEGBOX API down: {{ $labels.host }}"
+          description: "GET /v1/MEGBOX/devices on {{ $labels.host }} is not HTTP 200."
+
+      - alert: AiBoxScrapeFailed
+        expr: up{job="aibox"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI Box scrape failed: {{ $labels.host }}"
+          description: "json_exporter could not collect hardwareStatus from {{ $labels.instance }}."
+
+      - alert: AiBoxApiError
+        expr: megbox_api_code != 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MEGBOX API code {{ $value }} on {{ $labels.host }}"
+
+      - alert: AiBoxCPUHigh
+        expr: megbox_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} CPU {{ $value }}%"
+
+      - alert: AiBoxCPUTempHigh
+        expr: megbox_cpu_temp_celsius > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} CPU {{ $value }}°C"
+
+      - alert: AiBoxCPUTempCritical
+        expr: megbox_cpu_temp_celsius > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.host }} CPU {{ $value }}°C (critical)"
+
+      - alert: AiBoxMemHigh
+        expr: aibox:mem_used_ratio > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} RAM {{ $value | humanizePercentage }}"
+
+      - alert: AiBoxStorageHigh
+        expr: aibox:storage_used_ratio > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} storage {{ $value | humanizePercentage }}"
+
+      - alert: AiBoxStorageCritical
+        expr: aibox:storage_used_ratio > 0.95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.host }} storage {{ $value | humanizePercentage }} (critical)"
+
+      - alert: AiBoxNtpFail
+        expr: megbox_ntp_fail_count > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} NTP fail count {{ $value }}"
+
+  - name: oraybox
+    rules:
+      - alert: OrayboxUnreachable
+        expr: probe_success{job="blackbox-icmp",role="oraybox"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ICMP fail: {{ $labels.host }}"
+          description: "Oraybox {{ $labels.host }} ({{ $labels.instance }}) does not answer ping."
+
+      - alert: OrayboxApiDown
+        expr: probe_success{job="blackbox-http",role="oraybox"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Oraybox API down: {{ $labels.host }}"
+          description: "GET /cgi-bin/oraybox?_api=ether_status_get on {{ $labels.host }} is not HTTP 200."
+
+      - alert: OrayboxScrapeFailed
+        expr: up{job="oraybox"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Oraybox scrape failed: {{ $labels.host }}"
+          description: "json_exporter could not collect LAN ether_status from {{ $labels.instance }}."
+
+      - alert: OrayboxApiError
+        expr: oraybox_api_code != 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Oraybox API code {{ $value }} on {{ $labels.host }}"
+
+      - alert: OrayboxAllLanDown
+        expr: |
+          sum by (host) (oraybox:lan_link_up) == 0
+          and on (host) up{job="oraybox"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.host }} all LAN ports down"
+          description: "ether_status_get succeeded but every LAN port reports link=down."

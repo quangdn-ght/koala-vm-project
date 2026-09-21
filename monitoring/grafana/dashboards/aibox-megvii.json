@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "All guests + hypervisor: libvirt, node_exporter, ICMP/SSH/HTTP. Refresh 10s.",
+  "description": "Megvii MegCube AI Box hardwareStatus from GET /v1/MEGBOX/devices. Inventory: monitoring/aibox/devices.json. Scrape 1m.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -57,7 +57,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Host (ght-faceid-server)",
+      "title": "Megvii AI Box (MEGBOX /v1/MEGBOX/devices)",
       "type": "row",
       "gridPos": {
         "h": 1,
@@ -70,7 +70,7 @@
     },
     {
       "id": 2,
-      "title": "Host CPU",
+      "title": "Boxes up (scrape)",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -88,8 +88,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (1 - avg without (cpu,mode) (rate(node_cpu_seconds_total{role=\"hypervisor\",mode=\"idle\"}[2m])))",
-          "legendFormat": "CPU",
+          "expr": "count(up{job=\"aibox\",host=~\"$host\"} == 1) or vector(0)",
+          "legendFormat": "up",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -98,7 +98,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
+          "unit": "none",
           "color": {
             "mode": "thresholds"
           },
@@ -106,16 +106,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
                 "color": "yellow",
-                "value": 70
+                "value": 1
               },
               {
-                "color": "red",
-                "value": 90
+                "color": "green",
+                "value": 2
               }
             ]
           },
@@ -140,7 +140,7 @@
     },
     {
       "id": 3,
-      "title": "Host RAM",
+      "title": "ICMP OK",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -158,8 +158,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "1 - (node_memory_MemAvailable_bytes{role=\"hypervisor\"} / node_memory_MemTotal_bytes{role=\"hypervisor\"})",
-          "legendFormat": "RAM",
+          "expr": "count(probe_success{job=\"blackbox-icmp\",role=\"aibox\",host=~\"$host\"} == 1) or vector(0)",
+          "legendFormat": "ping",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -168,7 +168,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
+          "unit": "none",
           "color": {
             "mode": "thresholds"
           },
@@ -176,16 +176,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
                 "color": "yellow",
-                "value": 0.75
+                "value": 1
               },
               {
-                "color": "red",
-                "value": 0.9
+                "color": "green",
+                "value": 2
               }
             ]
           },
@@ -210,7 +210,7 @@
     },
     {
       "id": 4,
-      "title": "Host swap",
+      "title": "API HTTP 200",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -228,8 +228,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(node_memory_SwapTotal_bytes{role=\"hypervisor\"} - node_memory_SwapFree_bytes{role=\"hypervisor\"}) / clamp_min(node_memory_SwapTotal_bytes{role=\"hypervisor\"}, 1)",
-          "legendFormat": "swap",
+          "expr": "count(probe_success{job=\"blackbox-http\",role=\"aibox\",host=~\"$host\"} == 1) or vector(0)",
+          "legendFormat": "api",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -238,7 +238,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
+          "unit": "none",
           "color": {
             "mode": "thresholds"
           },
@@ -246,16 +246,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
                 "color": "yellow",
-                "value": 0.2
+                "value": 1
               },
               {
-                "color": "red",
-                "value": 0.5
+                "color": "green",
+                "value": 2
               }
             ]
           },
@@ -280,7 +280,7 @@
     },
     {
       "id": 5,
-      "title": "/mnt/data used",
+      "title": "Max CPU temp",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -298,8 +298,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "1 - (node_filesystem_avail_bytes{role=\"hypervisor\",mountpoint=\"/mnt/data\"} / node_filesystem_size_bytes{role=\"hypervisor\",mountpoint=\"/mnt/data\"})",
-          "legendFormat": "disk",
+          "expr": "max(megbox_cpu_temp_celsius{host=~\"$host\"}) or vector(0)",
+          "legendFormat": "cpu",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -308,7 +308,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
+          "unit": "celsius",
           "color": {
             "mode": "thresholds"
           },
@@ -321,11 +321,11 @@
               },
               {
                 "color": "yellow",
-                "value": 0.8
+                "value": 70
               },
               {
                 "color": "red",
-                "value": 0.9
+                "value": 80
               }
             ]
           },
@@ -350,27 +350,14 @@
     },
     {
       "id": 6,
-      "title": "Fleet health",
-      "type": "row",
+      "title": "AI Box inventory \u2014 API, hardwareStatus, identity",
+      "type": "table",
       "gridPos": {
-        "h": 1,
+        "h": 8,
         "w": 24,
         "x": 0,
         "y": 5
       },
-      "collapsed": false,
-      "panels": []
-    },
-    {
-      "id": 7,
-      "title": "VMs running (libvirt state=1)",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 6
-      },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -381,288 +368,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(libvirt_domain_info_state == 1) or vector(0)",
-          "legendFormat": "running",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "green",
-                "value": 6
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 8,
-      "title": "ICMP OK",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 6
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(probe_success{job=\"blackbox-icmp\",role=\"guest\"} == 1) or vector(0)",
-          "legendFormat": "ping",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 4
-              },
-              {
-                "color": "green",
-                "value": 5
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 9,
-      "title": "SSH OK",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 6
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(probe_success{job=\"blackbox-ssh\"} == 1) or vector(0)",
-          "legendFormat": "ssh",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 4
-              },
-              {
-                "color": "green",
-                "value": 5
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 10,
-      "title": "HTTP apps OK",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 6
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(probe_success{job=\"blackbox-http\"} == 1) or vector(0)",
-          "legendFormat": "http",
-          "refId": "A",
-          "editorMode": "code",
-          "range": false,
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "green",
-                "value": 7
-              }
-            ]
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 11,
-      "title": "All guests \u2014 state, resources, probes (real-time)",
-      "type": "table",
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 10
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "libvirt_domain_info_state",
-          "legendFormat": "{{vm}}",
+          "expr": "up{job=\"aibox\"}",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -674,8 +381,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "libvirt_domain_info_virtual_cpus",
-          "legendFormat": "{{vm}}",
+          "expr": "probe_success{job=\"blackbox-icmp\",role=\"aibox\"}",
+          "legendFormat": "{{host}}",
           "refId": "B",
           "editorMode": "code",
           "range": false,
@@ -687,8 +394,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "libvirt_domain_info_maximum_memory_bytes",
-          "legendFormat": "{{vm}}",
+          "expr": "probe_success{job=\"blackbox-http\",role=\"aibox\"}",
+          "legendFormat": "{{host}}",
           "refId": "C",
           "editorMode": "code",
           "range": false,
@@ -700,8 +407,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "vm:cpu_usage_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_api_code",
+          "legendFormat": "{{host}}",
           "refId": "D",
           "editorMode": "code",
           "range": false,
@@ -713,8 +420,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "libvirt_domain_memory_stats_rss_bytes",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_info",
+          "legendFormat": "{{host}}",
           "refId": "E",
           "editorMode": "code",
           "range": false,
@@ -726,8 +433,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_success{job=\"blackbox-icmp\",role=\"guest\"}",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_cpu_usage_percent",
+          "legendFormat": "{{host}}",
           "refId": "F",
           "editorMode": "code",
           "range": false,
@@ -739,8 +446,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_success{job=\"blackbox-ssh\"}",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_cpu_temp_celsius",
+          "legendFormat": "{{host}}",
           "refId": "G",
           "editorMode": "code",
           "range": false,
@@ -752,8 +459,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "min by (vm) (probe_success{job=\"blackbox-http\"})",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_gpu_temp_celsius",
+          "legendFormat": "{{host}}",
           "refId": "H",
           "editorMode": "code",
           "range": false,
@@ -765,8 +472,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "guest:root_disk_used_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_case_temp_celsius",
+          "legendFormat": "{{host}}",
           "refId": "I",
           "editorMode": "code",
           "range": false,
@@ -778,8 +485,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "guest:mem_used_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "aibox:mem_used_ratio",
+          "legendFormat": "{{host}}",
           "refId": "J",
           "editorMode": "code",
           "range": false,
@@ -791,9 +498,22 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "up{job=\"nodes\"}",
-          "legendFormat": "{{vm}}",
+          "expr": "aibox:storage_used_ratio",
+          "legendFormat": "{{host}}",
           "refId": "K",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_channels",
+          "legendFormat": "{{host}}",
+          "refId": "L",
           "editorMode": "code",
           "range": false,
           "instant": true,
@@ -810,7 +530,7 @@
         {
           "id": "joinByField",
           "options": {
-            "byField": "vm",
+            "byField": "host",
             "mode": "outer"
           }
         },
@@ -829,43 +549,52 @@
               "Time 8": true,
               "Time 9": true,
               "Time 10": true,
+              "Time 11": true,
               "__name__": true,
-              "__name__ 1": true,
               "job": true,
               "instance": true,
               "role": true,
-              "domain": true,
-              "state_desc": true,
-              "ip": true
+              "ip": true,
+              "vendor": true,
+              "Value #E": true,
+              "hardware_ver": true,
+              "license_key": true,
+              "megconnect_version": true
             },
             "renameByName": {
-              "vm": "VM",
-              "Value": "libvirt_state",
-              "Value #A": "state",
-              "Value #B": "vCPU",
-              "Value #C": "RAM alloc",
-              "Value #D": "CPU",
-              "Value #E": "RSS",
-              "Value #F": "ICMP",
-              "Value #G": "SSH",
-              "Value #H": "HTTP",
-              "Value #I": "disk /",
-              "Value #J": "RAM guest",
-              "Value #K": "node_exporter"
+              "host": "host",
+              "Value #A": "scrape",
+              "Value #B": "ICMP",
+              "Value #C": "API",
+              "Value #D": "api code",
+              "device_model": "model",
+              "device_id": "device id",
+              "serial_number": "serial",
+              "firmware_ver": "firmware",
+              "Value #F": "CPU %",
+              "Value #G": "CPU \u00b0C",
+              "Value #H": "GPU \u00b0C",
+              "Value #I": "case \u00b0C",
+              "Value #J": "RAM",
+              "Value #K": "storage",
+              "Value #L": "channels"
             },
             "indexByName": {
-              "VM": 0,
-              "state": 1,
+              "host": 0,
+              "scrape": 1,
               "ICMP": 2,
-              "SSH": 3,
-              "HTTP": 4,
-              "node_exporter": 5,
-              "vCPU": 6,
-              "CPU": 7,
-              "RAM alloc": 8,
-              "RSS": 9,
-              "RAM guest": 10,
-              "disk /": 11
+              "API": 3,
+              "api code": 4,
+              "model": 5,
+              "firmware": 6,
+              "serial": 7,
+              "CPU %": 8,
+              "CPU \u00b0C": 9,
+              "GPU \u00b0C": 10,
+              "case \u00b0C": 11,
+              "RAM": 12,
+              "storage": 13,
+              "channels": 14
             }
           }
         }
@@ -889,27 +618,27 @@
       }
     },
     {
-      "id": 12,
-      "title": "Per-VM resources",
+      "id": 7,
+      "title": "Resources",
       "type": "row",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 13
       },
       "collapsed": false,
       "panels": []
     },
     {
-      "id": 13,
-      "title": "vCPU usage (libvirt CPU time / vCPU)",
+      "id": 8,
+      "title": "CPU used",
       "type": "bargauge",
       "gridPos": {
-        "h": 10,
+        "h": 8,
         "w": 8,
         "x": 0,
-        "y": 21
+        "y": 14
       },
       "datasource": {
         "type": "prometheus",
@@ -921,8 +650,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "vm:cpu_usage_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_cpu_usage_percent{host=~\"$host\"} / 100",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -968,18 +697,315 @@
           ],
           "fields": "",
           "values": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "RAM used",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "aibox:mem_used_ratio{host=~\"$host\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Storage used",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "aibox:storage_used_ratio{host=~\"$host\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Trends (scrape 1m)",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 12,
+      "title": "CPU %",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_cpu_usage_percent{host=~\"$host\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Temperature \u00b0C",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_cpu_temp_celsius{host=~\"$host\"}",
+          "legendFormat": "{{host}} CPU",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_gpu_temp_celsius{host=~\"$host\"}",
+          "legendFormat": "{{host}} GPU",
+          "refId": "B",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_case_temp_celsius{host=~\"$host\"}",
+          "legendFormat": "{{host}} case",
+          "refId": "C",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
       "id": 14,
-      "title": "Guest RAM used (node_exporter)",
-      "type": "bargauge",
+      "title": "RAM used %",
+      "type": "timeseries",
       "gridPos": {
-        "h": 10,
-        "w": 8,
-        "x": 8,
-        "y": 21
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 31
       },
       "datasource": {
         "type": "prometheus",
@@ -991,65 +1017,55 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "guest:mem_used_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "aibox:mem_used_ratio{host=~\"$host\"} * 100",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
-          "range": false,
-          "instant": true
+          "range": true,
+          "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.7
-              },
-              {
-                "color": "red",
-                "value": 0.9
-              }
-            ]
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
           }
         },
         "overrides": []
       },
       "options": {
-        "orientation": "horizontal",
-        "displayMode": "gradient",
-        "valueMode": "color",
-        "showUnfilled": true,
-        "reduceOptions": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
           "calcs": [
+            "mean",
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
       "id": 15,
-      "title": "Guest root disk used",
-      "type": "bargauge",
+      "title": "Storage used %",
+      "type": "timeseries",
       "gridPos": {
-        "h": 10,
-        "w": 8,
-        "x": 16,
-        "y": 21
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 31
       },
       "datasource": {
         "type": "prometheus",
@@ -1061,78 +1077,55 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "guest:root_disk_used_ratio",
-          "legendFormat": "{{vm}}",
+          "expr": "aibox:storage_used_ratio{host=~\"$host\"} * 100",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
-          "range": false,
-          "instant": true
+          "range": true,
+          "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1,
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.7
-              },
-              {
-                "color": "red",
-                "value": 0.9
-              }
-            ]
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
           }
         },
         "overrides": []
       },
       "options": {
-        "orientation": "horizontal",
-        "displayMode": "gradient",
-        "valueMode": "color",
-        "showUnfilled": true,
-        "reduceOptions": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
           "calcs": [
+            "mean",
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
       "id": 16,
-      "title": "Probes over time",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 31
-      },
-      "collapsed": false,
-      "panels": []
-    },
-    {
-      "id": 17,
-      "title": "Libvirt running (1=up)",
-      "type": "state-timeline",
+      "title": "Memory MiB",
+      "type": "timeseries",
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 12,
         "x": 0,
-        "y": 32
+        "y": 39
       },
       "datasource": {
         "type": "prometheus",
@@ -1144,9 +1137,21 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(libvirt_domain_info_state == 1)",
-          "legendFormat": "{{vm}}",
+          "expr": "megbox_memory_used_mib{host=~\"$host\"}",
+          "legendFormat": "{{host}} used",
           "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_memory_size_mib{host=~\"$host\"}",
+          "legendFormat": "{{host}} size",
+          "refId": "B",
           "editorMode": "code",
           "range": true,
           "instant": false
@@ -1154,115 +1159,130 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
+          "unit": "mbytes",
           "custom": {
-            "fillOpacity": 70,
-            "lineWidth": 0
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
           }
         },
         "overrides": []
       },
       "options": {
-        "mergeValues": true,
-        "showValue": "never",
-        "alignValue": "center",
-        "rowHeight": 0.9,
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
           "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "title": "Storage MiB",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_storage_used_mib{host=~\"$host\"}",
+          "legendFormat": "{{host}} used",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "megbox_storage_size_mib{host=~\"$host\"}",
+          "legendFormat": "{{host}} size",
+          "refId": "B",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "mbytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
       "id": 18,
-      "title": "ICMP",
-      "type": "state-timeline",
+      "title": "Availability",
+      "type": "row",
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 32
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 47
       },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "probe_success{job=\"blackbox-icmp\",role=\"guest\"}",
-          "legendFormat": "{{vm}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "custom": {
-            "fillOpacity": 70,
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "mergeValues": true,
-        "showValue": "never",
-        "alignValue": "center",
-        "rowHeight": 0.9,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      }
+      "collapsed": false,
+      "panels": []
     },
     {
       "id": 19,
-      "title": "HTTP apps",
+      "title": "JSON scrape",
       "type": "state-timeline",
       "gridPos": {
-        "h": 8,
+        "h": 6,
         "w": 8,
-        "x": 16,
-        "y": 32
+        "x": 0,
+        "y": 48
       },
       "datasource": {
         "type": "prometheus",
@@ -1274,8 +1294,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_success{job=\"blackbox-http\"}",
-          "legendFormat": "{{vm}} {{app}}",
+          "expr": "up{job=\"aibox\",host=~\"$host\"}",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": true,
@@ -1321,26 +1341,13 @@
     },
     {
       "id": 20,
-      "title": "Trends",
-      "type": "row",
+      "title": "ICMP",
+      "type": "state-timeline",
       "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 40
-      },
-      "collapsed": false,
-      "panels": []
-    },
-    {
-      "id": 21,
-      "title": "VM CPU % (libvirt)",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 41
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 48
       },
       "datasource": {
         "type": "prometheus",
@@ -1352,8 +1359,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "vm:cpu_usage_ratio * 100",
-          "legendFormat": "{{vm}}",
+          "expr": "probe_success{job=\"blackbox-icmp\",role=\"aibox\",host=~\"$host\"}",
+          "legendFormat": "{{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": true,
@@ -1362,238 +1369,128 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
           "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "fillOpacity": 10,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "axisBorderShow": false,
-            "gradientMode": "none"
+            "fillOpacity": 70,
+            "lineWidth": 0
           }
         },
         "overrides": []
       },
       "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "mean",
-            "lastNotNull"
-          ],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "HTTP API",
+      "type": "state-timeline",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 48
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "probe_success{job=\"blackbox-http\",role=\"aibox\",host=~\"$host\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "lineWidth": 0
+          }
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
       }
     },
     {
       "id": 22,
-      "title": "VM RSS (host view)",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 41
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "libvirt_domain_memory_stats_rss_bytes",
-          "legendFormat": "{{vm}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "fillOpacity": 10,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "axisBorderShow": false,
-            "gradientMode": "none"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "mean",
-            "lastNotNull"
-          ],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 23,
-      "title": "Guest disk / used %",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 49
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "guest:root_disk_used_ratio * 100",
-          "legendFormat": "{{vm}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "fillOpacity": 10,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "axisBorderShow": false,
-            "gradientMode": "none"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "mean",
-            "lastNotNull"
-          ],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 24,
-      "title": "VM network RX+TX",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 49
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (vm) (rate(libvirt_domain_interface_stats_receive_bytes_total[2m]) + rate(libvirt_domain_interface_stats_transmit_bytes_total[2m]))",
-          "legendFormat": "{{vm}}",
-          "refId": "A",
-          "editorMode": "code",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "Bps",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "fillOpacity": 10,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "axisBorderShow": false,
-            "gradientMode": "none"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "mean",
-            "lastNotNull"
-          ],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 25,
       "title": "Firing alerts",
       "type": "row",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 54
       },
       "collapsed": false,
       "panels": []
     },
     {
-      "id": 26,
-      "title": "Prometheus ALERTS (firing)",
+      "id": 23,
+      "title": "Prometheus ALERTS (aibox)",
       "type": "table",
       "gridPos": {
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 55
       },
       "datasource": {
         "type": "prometheus",
@@ -1605,8 +1502,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "ALERTS{alertstate=\"firing\"}",
-          "legendFormat": "{{alertname}} {{vm}}",
+          "expr": "ALERTS{alertstate=\"firing\",alertname=~\"AiBox.*\"}",
+          "legendFormat": "{{alertname}} {{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -1633,9 +1530,8 @@
             "indexByName": {
               "alertname": 0,
               "severity": 1,
-              "vm": 2,
-              "alertstate": 3,
-              "app": 4
+              "host": 2,
+              "alertstate": 3
             }
           }
         }
@@ -1663,11 +1559,34 @@
   "schemaVersion": 39,
   "style": "dark",
   "tags": [
-    "kvm",
-    "overview"
+    "aibox",
+    "physical"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "host",
+        "type": "query",
+        "label": "AI Box",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(up{job=\"aibox\"}, host)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "sort": 1,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0,
+        "regex": "",
+        "allValue": ".*",
+        "definition": "label_values(up{job=\"aibox\"}, host)"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
@@ -1683,8 +1602,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "KVM Fleet Overview",
-  "uid": "kvm-fleet",
+  "title": "Megvii AI Box",
+  "uid": "aibox-megvii",
   "version": 1,
   "weekStart": ""
 }

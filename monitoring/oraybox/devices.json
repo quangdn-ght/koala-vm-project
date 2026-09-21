@@ -1,0 +1,36 @@
+{
+  "scrape_interval": "1m",
+  "api_path": "/cgi-bin/oraybox?_api=ether_status_get",
+  "vendor": "oray",
+  "lan_ports": ["lan1", "lan2", "lan3", "lan4"],
+  "devices": [
+    {
+      "name": "oraybox-2",
+      "ip": "192.168.3.2",
+      "mac": "a0:c5:f2:b6:be:9c",
+      "model": "oraybox",
+      "site": "lan-192.168.3"
+    },
+    {
+      "name": "oraybox-3",
+      "ip": "192.168.3.3",
+      "mac": "a0:c5:f2:b6:c0:52",
+      "model": "oraybox",
+      "site": "lan-192.168.3"
+    },
+    {
+      "name": "oraybox-10",
+      "ip": "192.168.3.10",
+      "mac": "a0:c5:f2:b6:be:b8",
+      "model": "oraybox",
+      "site": "lan-192.168.3"
+    },
+    {
+      "name": "oraybox-80",
+      "ip": "192.168.3.80",
+      "mac": "a0:c5:f2:b6:be:ae",
+      "model": "oraybox",
+      "site": "lan-192.168.3"
+    }
+  ]
+}

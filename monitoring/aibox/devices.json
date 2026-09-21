@@ -1,0 +1,23 @@
+{
+  "scrape_interval": "1m",
+  "api_path": "/v1/MEGBOX/devices",
+  "vendor": "megvii",
+  "devices": [
+    {
+      "name": "megbox-105",
+      "ip": "10.168.1.105",
+      "model": "MegCube-B4X16-311",
+      "device_id": "M014101572511120027",
+      "serial": "M014101572511120027",
+      "site": "physical-lan"
+    },
+    {
+      "name": "megbox-102",
+      "ip": "10.168.1.102",
+      "model": "MegCube-B4H16-311",
+      "device_id": "M030201202112001534",
+      "serial": "M014100742201000875",
+      "site": "physical-lan"
+    }
+  ]
+}

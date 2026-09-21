@@ -16,3 +16,6 @@
 
 - targets: ["http://10.168.1.106:8000/"]
   labels: {vm: nx-vms, app: nx-vms-web, role: guest}
+
+- targets: ["http://192.168.3.101:3000/api/health"]
+  labels: {host: ght-dev-server, app: fshare-dl, role: physical}

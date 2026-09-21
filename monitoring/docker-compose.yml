@@ -22,6 +22,7 @@ services:
       - "9091:9090"
     depends_on:
       - alertmanager
+      - json-exporter
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/-/ready"]
       interval: 15s
@@ -85,6 +86,25 @@ services:
       - --web.listen-address=:9115
     volumes:
       - ./blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+
+  json-exporter:
+    image: prometheuscommunity/json-exporter:v0.7.0
+    container_name: json-exporter
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - --config.file=/config.yml
+      - --web.listen-address=:7979
+    volumes:
+      - ./json_exporter/config.yml:/config.yml:ro
+    ports:
+      - "7979:7979"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:7979/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   node-exporter:
     image: prom/node-exporter:v1.8.2
