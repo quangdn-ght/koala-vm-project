@@ -1,21 +1,58 @@
-# Alerts are visible in Prometheus /alerts and Grafana.
-# Add a Telegram/email receiver here when a bot token is available.
+# Keep inbox (Phase 1). No Telegram.
+# class=down (ICMP / libvirt / hypervisor gone) groups faster than other critical.
 route:
-  receiver: default
-  group_by: [alertname, vm]
+  receiver: keep
+  group_by: [alertname, vm, host]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
   routes:
     - matchers:
+        - class="down"
+      receiver: keep
+      group_wait: 15s
+      group_interval: 5m
+      repeat_interval: 30m
+    - matchers:
         - severity="critical"
+      receiver: keep
       group_wait: 15s
       repeat_interval: 1h
 
 receivers:
-  - name: default
+  - name: keep
+    webhook_configs:
+      - url: http://keep-backend:8080/alerts/event/prometheus
+        send_resolved: true
+        max_alerts: 0
+        http_config:
+          basic_auth:
+            username: api_key
+            password_file: /etc/alertmanager/keep_webhook_password
+          follow_redirects: true
 
 inhibit_rules:
+  - source_matchers: [alertname="VMDown"]
+    target_matchers: [alertname=~"GuestUnreachable|SSHDown|GuestNodeExporterDown|AppHTTPDown"]
+    equal: [vm]
+  - source_matchers: [alertname="GuestUnreachable"]
+    target_matchers: [alertname=~"SSHDown|GuestNodeExporterDown"]
+    equal: [vm]
+  - source_matchers: [alertname="PhysicalUnreachable"]
+    target_matchers: [alertname=~"PhysicalSSHDown|PhysicalNodeExporterDown"]
+    equal: [host]
+  - source_matchers: [alertname="OrayboxUnreachable"]
+    target_matchers: [alertname=~"OrayboxApiDown|OrayboxScrapeFailed|OrayboxApiError"]
+    equal: [host]
+  - source_matchers: [alertname="AiBoxUnreachable"]
+    target_matchers: [alertname=~"AiBoxApiDown|AiBoxScrapeFailed"]
+    equal: [host]
+  - source_matchers: [alertname="HostSwapFull"]
+    target_matchers: [alertname=~"HostSwapHigh|HostMemLow"]
+    equal: [vm]
   - source_matchers: [severity="critical"]
     target_matchers: [severity="warning"]
     equal: [alertname, vm]
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: [alertname, host]

@@ -1,0 +1,9 @@
+# Provisioned Keep provider. Alerts vào Keep bằng webhook Alertmanager
+# (linked provider). File này cho phép query Prometheus từ workflow sau này.
+# install_webhook: false — không để Keep tự sửa Alertmanager.
+name: prometheus-kvm
+type: prometheus
+authentication:
+  url: http://prometheus:9090
+  verify: false
+install_webhook: false

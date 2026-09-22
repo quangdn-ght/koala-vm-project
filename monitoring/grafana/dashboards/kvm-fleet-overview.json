@@ -251,11 +251,11 @@
               },
               {
                 "color": "yellow",
-                "value": 0.2
+                "value": 0.5
               },
               {
                 "color": "red",
-                "value": 0.5
+                "value": 0.8
               }
             ]
           },
@@ -591,7 +591,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(probe_success{job=\"blackbox-http\"} == 1) or vector(0)",
+          "expr": "count(probe_success{job=\"blackbox-http\",role=~\"guest|physical\"} == 1) or vector(0)",
           "legendFormat": "http",
           "refId": "A",
           "editorMode": "code",
@@ -1274,7 +1274,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_success{job=\"blackbox-http\"}",
+          "expr": "probe_success{job=\"blackbox-http\",role=~\"guest|physical\"}",
           "legendFormat": "{{vm}} {{app}}",
           "refId": "A",
           "editorMode": "code",
@@ -1587,10 +1587,10 @@
     },
     {
       "id": 26,
-      "title": "Prometheus ALERTS (firing)",
+      "title": "Servers / VMs down (class=down)",
       "type": "table",
       "gridPos": {
-        "h": 8,
+        "h": 6,
         "w": 24,
         "x": 0,
         "y": 58
@@ -1605,8 +1605,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "ALERTS{alertstate=\"firing\"}",
-          "legendFormat": "{{alertname}} {{vm}}",
+          "expr": "ALERTS{alertstate=\"firing\",class=\"down\"}",
+          "legendFormat": "{{alertname}} {{vm}} {{host}}",
           "refId": "A",
           "editorMode": "code",
           "range": false,
@@ -1633,9 +1633,84 @@
             "indexByName": {
               "alertname": 0,
               "severity": 1,
-              "vm": 2,
-              "alertstate": 3,
-              "app": 4
+              "class": 2,
+              "vm": 3,
+              "host": 4,
+              "alertstate": 5
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 27,
+      "title": "Other firing (capacity / service / warning)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 64
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "ALERTS{alertstate=\"firing\"} unless ALERTS{alertstate=\"firing\",class=\"down\"}",
+          "legendFormat": "{{alertname}} {{vm}} {{host}}",
+          "refId": "A",
+          "editorMode": "code",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "prometheus": true,
+              "monitor": true
+            },
+            "indexByName": {
+              "alertname": 0,
+              "severity": 1,
+              "class": 2,
+              "vm": 3,
+              "host": 4,
+              "alertstate": 5
             }
           }
         }

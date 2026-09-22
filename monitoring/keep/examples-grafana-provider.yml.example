@@ -1,0 +1,8 @@
+# Copy thành grafana.yml khi đã có Grafana service account token (Viewer).
+# install_webhook phải là false — Alertmanager là nguồn push duy nhất.
+name: grafana-kvm
+type: grafana
+authentication:
+  token: REPLACE_WITH_GRAFANA_SA_TOKEN
+  host: http://grafana:3000
+install_webhook: false

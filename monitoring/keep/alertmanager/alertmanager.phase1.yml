@@ -1,0 +1,33 @@
+# Phase 1 — mọi alert Prometheus vào Keep inbox. Không Telegram.
+# default cũng trỏ keep (Alertmanager luôn cần một receiver gốc).
+
+route:
+  receiver: keep
+  group_by: [alertname, vm, host]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity="critical"
+      group_wait: 15s
+      group_interval: 5m
+      repeat_interval: 1h
+      receiver: keep
+
+receivers:
+  - name: keep
+    webhook_configs:
+      - url: http://keep-backend:8080/alerts/event/prometheus
+        send_resolved: true
+        max_alerts: 0
+        http_config:
+          basic_auth:
+            username: api_key
+            password_file: /etc/alertmanager/keep_webhook_password
+          follow_redirects: true
+
+inhibit_rules:
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: [alertname, vm, host]

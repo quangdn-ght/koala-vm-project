@@ -1,0 +1,31 @@
+# Giai đoạn hiện tại: KHÔNG provision file này.
+# Phase 2: copy vào keep/workflows/active/ rồi gắn KEEP_WORKFLOWS_DIRECTORY=/workflows
+# và restart keep-backend. Cần TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID trong .env
+# (provider telegram provisioned hoặc secrets trong Keep UI).
+#
+# Policy resolve: gửi tin "resolved" cho critical (send_resolved=true phía AM).
+# Dedup: Keep fingerprint theo alertname+vm+host; workflow chỉ chạy khi alert firing mới.
+
+workflow:
+  id: kvm-critical-telegram
+  name: Critical to Telegram
+  description: Page Telegram for severity=critical after Keep ingest. Disabled until Phase 2.
+  disabled: true
+  triggers:
+    - type: alert
+      cel: 'severity == "critical" && status == "firing"'
+  actions:
+    - name: telegram-page
+      provider:
+        type: telegram
+        config: "{{ providers.telegram }}"
+      with:
+        chat_id: "{{ env.TELEGRAM_CHAT_ID }}"
+        parse_mode: "HTML"
+        message: |
+          <b>{{ alert.name }}</b> [{{ alert.severity }}]
+          host={{ alert.host }} vm={{ alert.vm }} job={{ alert.job }}
+          {{ alert.description }}
+          Grafana: http://10.168.1.2:3000/d/kvm-fleet
+          AM: http://10.168.1.2:9093
+          Keep: http://10.168.1.2:3001
