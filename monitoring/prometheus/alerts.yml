@@ -87,6 +87,13 @@ groups:
             oraybox_lan_info * 0
           )
 
+      # 2 = Cloudflare proxy (valid), 1 = A is origin 27.72.98.70 (yellow), 0 = DNS fail
+      - record: website:dns_path
+        expr: |
+          (probe_dns_query_succeeded{job="blackbox-dns-website"} == 1)
+          *
+          (2 - probe_success{job="blackbox-dns-website"})
+
   - name: host
     rules:
       - alert: HostSwapHigh
@@ -591,3 +598,19 @@ groups:
         annotations:
           summary: "{{ $labels.host }} all LAN ports down"
           description: "ether_status_get succeeded but every LAN port reports link=down. Switching path is dead."
+
+  - name: websites
+    rules:
+      - alert: WebsiteHTTPDown
+        expr: probe_success{job="blackbox-http-website",role="website",kind=~"web|api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          class: service
+        annotations:
+          summary: "{{ $labels.kind }} down: {{ $labels.host }}"
+          description: >-
+            GET {{ $labels.instance }} failed for 2m
+            (kind={{ $labels.kind }}: web=frontend/web-app requires HTTP 200 HTML;
+            api=service API — JSON {"detail":"Not Found"} on GET / is healthy, not a missing SPA).
+            Fail = empty body, Kong no-route, TLS, or Cloudflare 502/52x Bad gateway.

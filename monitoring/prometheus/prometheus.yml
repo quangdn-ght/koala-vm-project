@@ -120,6 +120,40 @@ scrape_configs:
       - target_label: __address__
         replacement: host.docker.internal:9115
 
+  # Public websites — inventory: websites/sites.json (regen: scripts/gen-website-targets.py)
+  # Module per target via __param_module (http_website / http_website_origin / http_website_plain).
+  - job_name: blackbox-http-website
+    scrape_interval: 1m
+    scrape_timeout: 20s
+    metrics_path: /probe
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/websites.yml]
+        refresh_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: host.docker.internal:9115
+
+  # A-record vs origin_ip 27.72.98.70. probe_success=1 means origin-direct.
+  # website:dns_path: 2=Cloudflare (valid), 1=origin (yellow), 0=DNS fail.
+  - job_name: blackbox-dns-website
+    scrape_interval: 1m
+    scrape_timeout: 10s
+    metrics_path: /probe
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/websites-dns.yml]
+        refresh_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [query_name]
+        target_label: instance
+      - target_label: __address__
+        replacement: host.docker.internal:9115
+
   # Megvii AI Box — inventory: aibox/devices.json (regen: scripts/gen-aibox-targets.py)
   # Change scrape_interval here; keep aibox/devices.json scrape_interval in sync.
   - job_name: aibox

@@ -51,6 +51,17 @@
       ],
       "title": "Oraybox",
       "type": "dashboards"
+    },
+    {
+      "asDropdown": true,
+      "icon": "dashboard",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "websites"
+      ],
+      "title": "Websites",
+      "type": "dashboards"
     }
   ],
   "liveNow": true,

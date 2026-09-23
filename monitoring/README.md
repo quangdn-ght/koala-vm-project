@@ -7,6 +7,7 @@ Stack giám sát chạy trên hypervisor **ght-faceid-server** (`10.168.1.2/24` 
 - Máy vật lý trên LAN: `node_exporter`, nhiệt độ (hwmon / thermal zone), ICMP/SSH
 - Megvii AI Box (MegCube): API `GET /v1/MEGBOX/devices`
 - Switch Oraybox / 蒲公英: API `GET /cgi-bin/oraybox?_api=ether_status_get` (chỉ cổng LAN)
+- Website public: GET domain (200, body, Kong no-route, Cloudflare 502/52x; DNS vs origin `27.72.98.70`)
 
 Thư mục gốc: `/home/ght/deploy/monitoring`. Compose project: `kvm-monitoring`.
 
@@ -20,10 +21,11 @@ Thư mục gốc: `/home/ght/deploy/monitoring`. Compose project: `kvm-monitorin
 | Prometheus | http://10.168.1.2:9091 |
 | Alertmanager | http://10.168.1.2:9093 |
 | json-exporter | http://10.168.1.2:7979 |
+| Websites dashboard | http://10.168.1.2:3000/d/websites |
 
 Đăng nhập Grafana: user `admin` (hoặc `GRAFANA_ADMIN_USER` trong `.env`). Mật khẩu: `GRAFANA_ADMIN_PASSWORD` trong `monitoring/.env`. File mẫu: `.env.example`.
 
-Dashboard mặc định (home): **KVM Fleet Overview**. Grafana refresh **10s**. Prometheus scrape mặc định **15s** (job AI Box / Oraybox: **1m**).
+Dashboard mặc định (home): **KVM Fleet Overview**. Grafana refresh **10s**. Prometheus scrape mặc định **15s** (job AI Box / Oraybox / website: **1m**).
 
 Cockpit trên host đã chiếm cổng **`:9090`**, nên Prometheus map ra host **`:9091`** (trong container vẫn là `9090`).
 
@@ -71,6 +73,9 @@ monitoring/
 ├── .env / .env.example          GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD
 ├── aibox/
 │   └── devices.json             inventory AI Box (nguồn sự thật)
+├── websites/
+│   ├── sites.json               inventory domain public (nguồn sự thật)
+│   └── survey.md                khảo sát DNS/GET / Cloudflare
 ├── oraybox/
 │   ├── devices.json             inventory switch Oraybox
 │   └── scan-report.md           kết quả quét LAN 192.168.3.0/24
@@ -89,6 +94,7 @@ monitoring/
 └── scripts/
     ├── gen-aibox-targets.py
     ├── gen-oraybox-targets.py
+    ├── gen-website-targets.py   HTTP + DNS origin IP
     ├── gen-dashboards.py        sinh lại toàn bộ dashboard Grafana
     ├── install-node-exporter-guests.sh
     └── install-node-exporter-physical.sh
@@ -202,6 +208,8 @@ Scrape mặc định **15s**, timeout **10s**, `evaluation_interval` 15s. `exter
 | `blackbox-icmp` | `targets/icmp*.yml` | 15s | Ping IPv4 |
 | `blackbox-ssh` | `targets/ssh*.yml` | 15s | TCP connect `:22` |
 | `blackbox-http` | `targets/http*.yml` | 15s | HTTP 200/301/302 |
+| `blackbox-http-website` | `targets/websites.yml` | **1m** (timeout 20s) | GET domain public |
+| `blackbox-dns-website` | `targets/websites-dns.yml` | **1m** | A vs origin; `website:dns_path` 2=CF / 1=origin / 0=fail |
 | `aibox` | `targets/aibox.yml` qua json-exporter | **1m** (timeout 20s) | MEGBOX JSON |
 | `oraybox` | `targets/oraybox.yml` qua json-exporter | **1m** (timeout 20s) | Oraybox LAN JSON |
 
@@ -218,6 +226,39 @@ Cấu hình: `blackbox/blackbox.yml`.
 | `icmp` | icmp | 5s | IPv4 only |
 | `tcp_connect` | tcp | 5s | SSH `:22` |
 | `http_2xx` | http | 8s | GET, follow redirect, chấp nhận 200/301/302, bỏ verify TLS |
+| `http_website` | http | 15s | `kind=web` frontend/web-app: **200** cuối, body không rỗng, TLS verify, fail Kong no-route và Cloudflare 502/52x |
+| `http_website_api` | http | 15s | `kind=api` service API (không phải SPA): **200 hoặc 404** + JSON (`{`); `{"detail":"Not Found"}` trên GET `/` là **healthy** |
+| `http_website_origin` | http | 15s | Giống web, **bỏ verify TLS** (Kong origin `27.72.98.70` cert self-signed `CN=localhost`) |
+| `http_website_plain` | http | 15s | HTTP không bắt SSL (dự phòng `xworks.local`) |
+| `dns_website_*` | dns | 5s | Query A qua `1.1.1.1`; `probe_success=1` nếu A là `27.72.98.70`. Recording `website:dns_path`: **2** Cloudflare (valid), **1** origin (vàng), **0** DNS fail |
+
+### Website public (`websites/sites.json`)
+
+Sửa JSON rồi:
+
+```bash
+python3 /home/ght/deploy/monitoring/scripts/gen-website-targets.py
+cd /home/ght/deploy/monitoring && docker compose restart blackbox
+curl -sS -X POST http://127.0.0.1:9091/-/reload
+```
+
+Healthy HTTP:
+
+- `kind=web` (frontend / web-app): status cuối **200**, có body, không Kong “no Route”, không Cloudflare 502/52x.
+- `kind=api` (service API, không phải web-app): GET `/` trả JSON, kể cả `{"detail":"Not Found"}` với **200 hoặc 404** FastAPI, vẫn **healthy**. Vẫn fail Kong no-route và Cloudflare 502/52x.
+
+Ví dụ API: `https://sync.giahungtech.com.vn/` (`kind=api`).
+
+| Điều kiện | Alert / Grafana | Sev |
+|-----------|-----------------|-----|
+| GET fail (kể cả CF 502) | `WebsiteHTTPDown` | critical (`service`), 2m |
+| A record Cloudflare (104.x / 172.67.x, …) | `website:dns_path=2` | **valid** (xanh) — không alert |
+| A record direct `27.72.98.70` | `website:dns_path=1` | **vàng** (origin, natural) — không alert |
+| DNS fail / NXDOMAIN | `website:dns_path=0` | đỏ trên timeline |
+
+`xworks.local` `enabled: false` (NXDOMAIN). File generated: `prometheus/targets/websites.yml` + `websites-dns.yml` — **không** đặt tên `http-*.yml`.
+
+Khảo sát: `websites/survey.md`. Dashboard: `/d/websites`.
 
 ### HTTP ứng dụng (`prometheus/targets/http.yml`)
 
@@ -339,6 +380,7 @@ File `prometheus/alerts.yml`, group `recording`, interval 15s.
 | `physical:temp_max_celsius` | Max hwmon trong khoảng 0–120°C |
 | `aibox:mem_used_ratio` / `aibox:storage_used_ratio` | RAM / storage MegCube |
 | `oraybox:lan_link_up` | 1 nếu `link="up"`, 0 nếu scrape được nhưng down |
+| `website:dns_path` | **2** Cloudflare proxy (valid), **1** A=`27.72.98.70` (vàng), **0** DNS fail |
 
 ---
 
@@ -375,6 +417,7 @@ Alertmanager (`alertmanager/alertmanager.yml`): group theo `[alertname, vm, host
 | GuestUnreachable | ICMP guest production | critical (`down`), 2m |
 | SSHDown | TCP :22 | warning, 3m |
 | AppHTTPDown | HTTP probe `role=guest\|physical` | critical (`service`), 2m |
+| WebsiteHTTPDown | GET domain; `kind` = web (frontend) hoặc api (service API) | critical (`service`), 2m |
 | GuestNodeExporterDown | `up{job="nodes"}==0` | warning, 3m |
 | GuestDiskFull / Critical | root > 85% / 95% | warning / critical |
 | GuestMemHigh | RAM > 90% | warning, 10m |

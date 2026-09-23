@@ -51,6 +51,17 @@
       ],
       "title": "Oraybox",
       "type": "dashboards"
+    },
+    {
+      "asDropdown": true,
+      "icon": "dashboard",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "websites"
+      ],
+      "title": "Websites",
+      "type": "dashboards"
     }
   ],
   "liveNow": true,
@@ -1131,6 +1142,7 @@
               }
             ]
           },
+          "mappings": [],
           "custom": {
             "fillOpacity": 70,
             "lineWidth": 0
@@ -1196,6 +1208,7 @@
               }
             ]
           },
+          "mappings": [],
           "custom": {
             "fillOpacity": 70,
             "lineWidth": 0

@@ -26,3 +26,348 @@ modules:
       fail_if_not_ssl: false
       tls_config:
         insecure_skip_verify: true
+
+  # Public HTTPS: final 200, non-empty body, valid TLS, no Kong no-route, no Cloudflare 502/52x.
+  http_website:
+    prober: http
+    timeout: 15s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      fail_if_not_ssl: true
+      tls_config:
+        insecure_skip_verify: false
+      headers:
+        User-Agent: "kvm-monitoring-blackbox/1.0"
+      fail_if_body_not_matches_regexp:
+        - ".+"
+      fail_if_body_matches_regexp:
+        - '(?i)no Route matched'
+        - '(?i)no Route and no Service'
+        - '(?i)cf-error-details'
+        - '(?i)cf-error-code'
+        - '(?i)Error code 50[2-4]'
+        - '(?i)Error code 52[0-7]'
+        - '(?i)Error code 530'
+        - '(?i)<title>[^<]*(?:502: )?Bad [Gg]ateway'
+        - '(?i)<title>[^<]*52[0-7]:'
+        - '(?i)<title>[^<]*530:'
+        - '(?i)Web server is down'
+        - '(?i)Origin is unreachable'
+        - '(?i)A timeout occurred'
+
+  # Service API (not a web-app/frontend). GET / returning JSON
+  # {"detail":"Not Found"} with 200 or FastAPI-style 404 is healthy.
+  http_website_api:
+    prober: http
+    timeout: 15s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200, 404]
+      method: GET
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      fail_if_not_ssl: true
+      tls_config:
+        insecure_skip_verify: false
+      headers:
+        User-Agent: "kvm-monitoring-blackbox/1.0"
+      fail_if_body_not_matches_regexp:
+        - '\{'
+      fail_if_body_matches_regexp:
+        - '(?i)no Route matched'
+        - '(?i)no Route and no Service'
+        - '(?i)cf-error-details'
+        - '(?i)cf-error-code'
+        - '(?i)Error code 50[2-4]'
+        - '(?i)Error code 52[0-7]'
+        - '(?i)Error code 530'
+        - '(?i)<title>[^<]*(?:502: )?Bad [Gg]ateway'
+        - '(?i)<title>[^<]*52[0-7]:'
+        - '(?i)<title>[^<]*530:'
+        - '(?i)Web server is down'
+        - '(?i)Origin is unreachable'
+        - '(?i)A timeout occurred'
+
+  # Origin 27.72.98.70 (Kong) uses self-signed CN=localhost.
+  http_website_origin:
+    prober: http
+    timeout: 15s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      fail_if_not_ssl: false
+      tls_config:
+        insecure_skip_verify: true
+      headers:
+        User-Agent: "kvm-monitoring-blackbox/1.0"
+      fail_if_body_not_matches_regexp:
+        - ".+"
+      fail_if_body_matches_regexp:
+        - '(?i)no Route matched'
+        - '(?i)no Route and no Service'
+        - '(?i)cf-error-details'
+        - '(?i)cf-error-code'
+        - '(?i)Error code 50[2-4]'
+        - '(?i)Error code 52[0-7]'
+        - '(?i)Error code 530'
+        - '(?i)<title>[^<]*(?:502: )?Bad [Gg]ateway'
+        - '(?i)<title>[^<]*52[0-7]:'
+        - '(?i)<title>[^<]*530:'
+        - '(?i)Web server is down'
+        - '(?i)Origin is unreachable'
+        - '(?i)A timeout occurred'
+
+  http_website_plain:
+    prober: http
+    timeout: 15s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      fail_if_not_ssl: false
+      tls_config:
+        insecure_skip_verify: true
+      headers:
+        User-Agent: "kvm-monitoring-blackbox/1.0"
+      fail_if_body_not_matches_regexp:
+        - ".+"
+      fail_if_body_matches_regexp:
+        - '(?i)no Route matched'
+        - '(?i)no Route and no Service'
+        - '(?i)cf-error-details'
+        - '(?i)cf-error-code'
+        - '(?i)Error code 50[2-4]'
+        - '(?i)Error code 52[0-7]'
+        - '(?i)Error code 530'
+        - '(?i)<title>[^<]*(?:502: )?Bad [Gg]ateway'
+        - '(?i)<title>[^<]*52[0-7]:'
+        - '(?i)<title>[^<]*530:'
+        - '(?i)Web server is down'
+        - '(?i)Origin is unreachable'
+        - '(?i)A timeout occurred'
+
+  # BEGIN GENERATED website-dns
+  dns_website_face_id:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "face-id.cloud"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_sync_face_id:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "sync.face-id.cloud"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_zlink_face_id:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "zlink.face-id.cloud"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_giahungtech:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "giahungtech.com.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_www_giahungtech:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "www.giahungtech.com.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_sync_giahungtech:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "sync.giahungtech.com.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_xworks:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "xworks.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_admin_xworks:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "admin.xworks.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_media_xworks:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "media.xworks.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_zalo_xworks:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "zalo.xworks.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_cloud_megvii:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "cloud.megvii.com.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_deepsight_megvii:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "deepsight.megvii.com.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_chebichat:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "chebichat.com.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  dns_website_www_chebichat:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "www.chebichat.com.vn"
+      query_type: A
+      query_class: IN
+      recursion_desired: true
+      transport_protocol: udp
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      valid_rcodes: [NOERROR]
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - "27\\.72\\.98\\.70"
+  # END GENERATED website-dns

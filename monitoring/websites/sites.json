@@ -1,0 +1,143 @@
+{
+  "scrape_interval": "1m",
+  "origin_ip": "27.72.98.70",
+  "dns_server": "1.1.1.1",
+  "user_agent": "kvm-monitoring-blackbox/1.0",
+  "sites": [
+    {
+      "name": "face-id",
+      "url": "https://face-id.cloud/",
+      "group": "face-id",
+      "enabled": true,
+      "origin_expected": true,
+      "tls": "origin",
+      "kind": "web"
+    },
+    {
+      "name": "sync-face-id",
+      "url": "https://sync.face-id.cloud/",
+      "group": "face-id",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "zlink-face-id",
+      "url": "https://zlink.face-id.cloud/",
+      "group": "face-id",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "giahungtech",
+      "url": "https://giahungtech.com.vn/",
+      "group": "giahungtech",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "www-giahungtech",
+      "url": "https://www.giahungtech.com.vn/",
+      "group": "giahungtech",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "sync-giahungtech",
+      "url": "https://sync.giahungtech.com.vn/",
+      "group": "giahungtech",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "api"
+    },
+    {
+      "name": "xworks",
+      "url": "https://xworks.vn/",
+      "group": "xworks",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "admin-xworks",
+      "url": "https://admin.xworks.vn/",
+      "group": "xworks",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "xworks-local",
+      "url": "https://xworks.local/",
+      "group": "xworks",
+      "enabled": false,
+      "origin_expected": false,
+      "tls": "plain",
+      "kind": "web"
+    },
+    {
+      "name": "media-xworks",
+      "url": "https://media.xworks.vn/",
+      "group": "xworks",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "zalo-xworks",
+      "url": "https://zalo.xworks.vn/",
+      "group": "xworks",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "cloud-megvii",
+      "url": "https://cloud.megvii.com.vn/",
+      "group": "megvii",
+      "enabled": true,
+      "origin_expected": true,
+      "tls": "origin",
+      "kind": "web"
+    },
+    {
+      "name": "deepsight-megvii",
+      "url": "https://deepsight.megvii.com.vn/",
+      "group": "megvii",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "chebichat",
+      "url": "https://chebichat.com.vn/",
+      "group": "chebichat",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    },
+    {
+      "name": "www-chebichat",
+      "url": "https://www.chebichat.com.vn/",
+      "group": "chebichat",
+      "enabled": true,
+      "origin_expected": false,
+      "tls": "public",
+      "kind": "web"
+    }
+  ]
+}

@@ -70,8 +70,10 @@ User: `keep`. Password: `KEEP_DEFAULT_PASSWORD` trong `monitoring/.env`.
 | S04 | SSHDown chebichat | :22 đóng, ping OK | warning |
 | S05 | AiBoxApiDown megbox-102 | MEGBOX API fail, ping OK | critical |
 | S06 | OrayboxApiDown oraybox-10 | CGI 500, ping OK | warning |
+| S07 | WebsiteHTTPDown face-id | GET domain fail / Kong no-route | critical |
+| S08 | WebsiteHTTPDown zlink CF 502 | Cloudflare Bad gateway | critical |
 
-**Kỳ vọng:** `AppHTTPDown` **không** xuất hiện cho Oraybox (matcher `role=guest|physical`). S06 là warning.
+**Kỳ vọng:** `AppHTTPDown` **không** xuất hiện cho Oraybox (matcher `role=guest|physical`). S06 là warning. S08 critical `class=service` (CF 502, không `class=down`). Cloudflare proxy (A ≠ 27.72.98.70) **không** alert.
 
 ### Pack `capacity` — treo / OOM / disk / nhiệt
 

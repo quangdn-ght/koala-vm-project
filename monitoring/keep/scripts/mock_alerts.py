@@ -187,6 +187,22 @@ SCENARIOS: list[dict] = [
         {"class": "service", "host": "mock-oraybox-10", "role": "oraybox", "job": "blackbox-http", "instance": "http://192.168.3.10/cgi-bin/oraybox?_api=ether_status_get"},
         f"{GRAFANA}/d/oraybox-lan?var-host=oraybox-10",
     ),
+    scenario(
+        "S07", "service", "WebsiteHTTPDown", "critical",
+        "Website down: face-id (mock)",
+        "Mock: GET https://face-id.cloud/ fail (non-200 / Kong no-route).",
+        {"class": "service", "host": "mock-face-id", "app": "face-id", "group": "face-id", "role": "website",
+         "kind": "web", "job": "blackbox-http-website", "instance": "https://face-id.cloud/", "origin_expected": "true"},
+        f"{GRAFANA}/d/websites",
+    ),
+    scenario(
+        "S08", "service", "WebsiteHTTPDown", "critical",
+        "Website down: zlink-face-id Cloudflare 502 (mock)",
+        "Mock: domain proxied qua Cloudflare, GET trả 502 Bad gateway / cf-error.",
+        {"class": "service", "host": "mock-zlink-face-id", "app": "zlink-face-id", "group": "face-id", "role": "website",
+         "kind": "web", "job": "blackbox-http-website", "instance": "https://zlink.face-id.cloud/", "origin_expected": "false"},
+        f"{GRAFANA}/d/websites",
+    ),
     # --- capacity: stall / OOM / disk / nhiệt ---
     scenario(
         "C01", "capacity", "HostSwapFull", "critical",

@@ -214,6 +214,16 @@ Telegram cột = **Phase 2+**. Phase 0–1: mọi dòng “Keep inbox” chỉ h
 | OrayboxAllLanDown | inbox | có |
 | OrayboxScrapeFailed / OrayboxApiError | inbox | không |
 
+### Websites (public GET)
+
+| Alert | Keep | Telegram Phase 2 |
+|-------|------|------------------|
+| WebsiteHTTPDown | inbox | có (`kind=web` frontend 200; `kind=api` JSON `{"detail":"Not Found"}` trên GET `/` là healthy; fail Kong/CF 502) |
+
+DNS: Cloudflare proxy = valid (Grafana xanh). A = `27.72.98.70` = origin direct (Grafana vàng). Không alert Keep vì đang qua CF.
+
+Job `blackbox-http-website` / `blackbox-dns-website`. Inventory `monitoring/websites/sites.json`. Grafana `/d/websites`. **Không** gộp vào `AppHTTPDown`.
+
 ### Việc sửa rule (Phase 3, không chặn Phase 0)
 
 1. `AppHTTPDown` đã thu hẹp `role=~"guest|physical"` (Oraybox/AI Box HTTP dùng rule riêng).

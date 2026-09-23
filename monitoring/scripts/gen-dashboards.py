@@ -173,7 +173,11 @@ def table(pid, title, targets, x, y, w, h, transformations):
     )
 
 
-def state_timeline(pid, title, expr, x, y, w, h, legend="{{vm}}"):
+def state_timeline(pid, title, expr, x, y, w, h, legend="{{vm}}", steps=None, mappings=None):
+    steps = steps or [
+        {"color": "red", "value": None},
+        {"color": "green", "value": 1},
+    ]
     return panel_base(
         pid,
         title,
@@ -188,11 +192,9 @@ def state_timeline(pid, title, expr, x, y, w, h, legend="{{vm}}"):
                 "color": {"mode": "thresholds"},
                 "thresholds": {
                     "mode": "absolute",
-                    "steps": [
-                        {"color": "red", "value": None},
-                        {"color": "green", "value": 1},
-                    ],
+                    "steps": steps,
                 },
+                "mappings": mappings or [],
                 "custom": {"fillOpacity": 70, "lineWidth": 0},
             },
             "overrides": [],
@@ -231,6 +233,7 @@ def dashboard(title, uid, panels, templating=None, tags=None, description=""):
             {"asDropdown": True, "icon": "dashboard", "includeVars": True, "keepTime": True, "tags": ["physical"], "title": "Physical hosts", "type": "dashboards"},
             {"asDropdown": True, "icon": "dashboard", "includeVars": True, "keepTime": True, "tags": ["aibox"], "title": "AI Box", "type": "dashboards"},
             {"asDropdown": True, "icon": "dashboard", "includeVars": True, "keepTime": True, "tags": ["oraybox"], "title": "Oraybox", "type": "dashboards"},
+            {"asDropdown": True, "icon": "dashboard", "includeVars": True, "keepTime": True, "tags": ["websites"], "title": "Websites", "type": "dashboards"},
         ],
         "liveNow": True,
         "panels": panels,
@@ -462,12 +465,25 @@ def fleet():
             'sum by (vm) (rate(libvirt_domain_interface_stats_receive_bytes_total[2m]) + rate(libvirt_domain_interface_stats_transmit_bytes_total[2m]))',
             12, 49, 12, 8, unit="Bps",
         ),
-        row(25, "Firing alerts", 57),
+        row(25, "Public websites", 57),
+        stat(28, "Websites HTTP OK",
+             'count(probe_success{job="blackbox-http-website"} == 1) or vector(0)',
+             0, 58, 8, 4, legend="http",
+             thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 10}, {"color": "green", "value": 13}]),
+        stat(29, "Cloudflare proxy",
+             'count(website:dns_path == 2) or vector(0)',
+             8, 58, 8, 4, legend="cf",
+             thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 8}, {"color": "green", "value": 11}]),
+        stat(30, "Direct origin 27.72.98.70",
+             'count(website:dns_path == 1) or vector(0)',
+             16, 58, 8, 4, legend="origin",
+             thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 1}]),
+        row(31, "Firing alerts", 62),
         table(
             26,
             "Servers / VMs down (class=down)",
             [target('ALERTS{alertstate="firing",class="down"}', "{{alertname}} {{vm}} {{host}}", "A", instant=True, fmt="table")],
-            0, 58, 24, 6,
+            0, 63, 24, 6,
             [
                 {"id": "labelsToFields", "options": {"mode": "columns"}},
                 {
@@ -483,7 +499,7 @@ def fleet():
             27,
             "Other firing (capacity / service / warning)",
             [target('ALERTS{alertstate="firing"} unless ALERTS{alertstate="firing",class="down"}', "{{alertname}} {{vm}} {{host}}", "A", instant=True, fmt="table")],
-            0, 64, 24, 8,
+            0, 69, 24, 8,
             [
                 {"id": "labelsToFields", "options": {"mode": "columns"}},
                 {
@@ -501,7 +517,7 @@ def fleet():
         "kvm-fleet",
         panels,
         tags=["kvm", "overview"],
-        description="All guests + hypervisor: libvirt, node_exporter, ICMP/SSH/HTTP. Refresh 10s.",
+        description="All guests + hypervisor: libvirt, node_exporter, ICMP/SSH/HTTP, public websites. Refresh 10s.",
     )
 
 
@@ -1394,6 +1410,167 @@ def oraybox_overview():
     )
 
 
+def website_group_var():
+    return {
+        "name": "group",
+        "type": "query",
+        "label": "Group",
+        "datasource": DS,
+        "query": 'label_values(probe_success{job="blackbox-http-website"}, group)',
+        "refresh": 2,
+        "includeAll": True,
+        "multi": True,
+        "sort": 1,
+        "current": {"text": "All", "value": "$__all"},
+        "hide": 0,
+        "regex": "",
+        "allValue": ".*",
+        "definition": 'label_values(probe_success{job="blackbox-http-website"}, group)',
+    }
+
+
+def websites_overview():
+    g = "$group"
+    tbl_targets = [
+        target(
+            f'probe_success{{job="blackbox-http-website",group=~"{g}"}}',
+            "{{host}}", "A", instant=True, fmt="table",
+        ),
+        target(
+            f'probe_http_status_code{{job="blackbox-http-website",group=~"{g}"}}',
+            "{{host}}", "B", instant=True, fmt="table",
+        ),
+        target(
+            f'probe_duration_seconds{{job="blackbox-http-website",group=~"{g}"}}',
+            "{{host}}", "C", instant=True, fmt="table",
+        ),
+        target(
+            f'probe_http_ssl{{job="blackbox-http-website",group=~"{g}"}}',
+            "{{host}}", "D", instant=True, fmt="table",
+        ),
+        target(
+            f'website:dns_path{{group=~"{g}"}}',
+            "{{host}}", "E", instant=True, fmt="table",
+        ),
+    ]
+    transforms = [
+        {"id": "labelsToFields", "options": {"mode": "columns"}},
+        {"id": "joinByField", "options": {"byField": "host", "mode": "outer"}},
+        {
+            "id": "organize",
+            "options": {
+                "excludeByName": {
+                    "Time": True, "Time 1": True, "Time 2": True, "Time 3": True, "Time 4": True,
+                    "__name__": True, "job": True, "instance": True, "role": True,
+                    "app": True, "query_name": True, "monitor": True, "prometheus": True,
+                },
+                "renameByName": {
+                    "host": "host",
+                    "group": "group",
+                    "kind": "kind",
+                    "origin_expected": "expect origin",
+                    "Value #A": "HTTP OK",
+                    "Value #B": "status",
+                    "Value #C": "latency s",
+                    "Value #D": "TLS",
+                    "Value #E": "DNS path",
+                },
+                "indexByName": {
+                    "host": 0, "group": 1, "kind": 2, "expect origin": 3,
+                    "HTTP OK": 4, "status": 5, "latency s": 6, "TLS": 7,
+                    "DNS path": 8,
+                },
+            },
+        },
+    ]
+    panels = [
+        row(1, "Public website probes", 0),
+        stat(2, "HTTP OK",
+             f'count(probe_success{{job="blackbox-http-website",group=~"{g}"}} == 1) or vector(0)',
+             0, 1, 6, 4, legend="http",
+             thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 10}, {"color": "green", "value": 13}]),
+        stat(3, "HTTP down",
+             f'count(probe_success{{job="blackbox-http-website",group=~"{g}"}} == 0) or vector(0)',
+             6, 1, 6, 4, legend="down",
+             thresholds=[{"color": "green", "value": None}, {"color": "red", "value": 1}]),
+        stat(4, "Cloudflare proxy",
+             f'count(website:dns_path{{group=~"{g}"}} == 2) or vector(0)',
+             12, 1, 6, 4, legend="cf",
+             thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 8}, {"color": "green", "value": 11}]),
+        stat(5, "Direct origin 27.72.98.70",
+             f'count(website:dns_path{{group=~"{g}"}} == 1) or vector(0)',
+             18, 1, 6, 4, legend="origin",
+             thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 1}]),
+        table(6, "Sites — HTTP + DNS path", tbl_targets, 0, 5, 24, 10, transforms),
+        row(7, "HTTP over time", 15),
+        state_timeline(
+            8, "HTTP success",
+            f'probe_success{{job="blackbox-http-website",group=~"{g}"}}',
+            0, 16, 12, 8, legend="{{host}}",
+        ),
+        state_timeline(
+            9, "DNS path — Cloudflare OK / origin yellow",
+            f'website:dns_path{{group=~"{g}"}}',
+            12, 16, 12, 8, legend="{{host}}",
+            steps=[
+                {"color": "red", "value": None},
+                {"color": "yellow", "value": 1},
+                {"color": "green", "value": 2},
+            ],
+            mappings=[
+                {
+                    "type": "value",
+                    "options": {
+                        "0": {"text": "DNS fail", "index": 0, "color": "red"},
+                        "1": {"text": "origin 27.72.98.70", "index": 1, "color": "yellow"},
+                        "2": {"text": "Cloudflare", "index": 2, "color": "green"},
+                    },
+                }
+            ],
+        ),
+        timeseries(
+            10, "HTTP latency",
+            f'probe_duration_seconds{{job="blackbox-http-website",group=~"{g}"}}',
+            0, 24, 24, 8, unit="s", legend="{{host}}",
+        ),
+        row(11, "Firing", 32),
+        table(
+            12,
+            "WebsiteHTTPDown",
+            [target(
+                'ALERTS{alertstate="firing",alertname="WebsiteHTTPDown"}',
+                "{{alertname}} {{host}}", "A", instant=True, fmt="table",
+            )],
+            0, 33, 24, 6,
+            [
+                {"id": "labelsToFields", "options": {"mode": "columns"}},
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {"Time": True, "__name__": True, "prometheus": True, "monitor": True},
+                        "indexByName": {
+                            "alertname": 0, "severity": 1, "class": 2, "host": 3,
+                            "group": 4, "alertstate": 5,
+                        },
+                    },
+                },
+            ],
+        ),
+    ]
+    return dashboard(
+        "Public websites",
+        "websites",
+        panels,
+        templating=[website_group_var()],
+        tags=["websites", "kvm"],
+        description=(
+            "GET health for public domains (200, body, Kong no-route, Cloudflare 502/52x). "
+            "DNS: Cloudflare proxy is valid (green); A=27.72.98.70 is origin-direct (yellow). "
+            "Inventory: monitoring/websites/sites.json. Scrape 1m."
+        ),
+    )
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for name, data in (
@@ -1405,6 +1582,7 @@ def main():
         ("physical-temperature.json", physical_temp()),
         ("aibox-megvii.json", aibox_overview()),
         ("oraybox-lan.json", oraybox_overview()),
+        ("websites.json", websites_overview()),
     ):
         path = OUT / name
         path.write_text(json.dumps(data, indent=2) + "\n")
