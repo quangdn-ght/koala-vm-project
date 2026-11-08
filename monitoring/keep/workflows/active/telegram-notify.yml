@@ -1,0 +1,120 @@
+# Keep → Telegram chat vận hành (NOTIFY_TELEGRAM_CHAT_ID).
+# Gửi: severity critical/high, và mọi cảnh báo nhiệt độ (kể cả warning).
+# Bỏ: warning không phải nhiệt. Keep 0.54 đọc tham số ở provider.with.
+# parse_mode html: Telegram không tô màu chữ; màu mức độ là emoji 🔴 🟠 🟢.
+# Một tin khi bắt đầu, một tin khi hết (only_on_change: status).
+workflow:
+  id: kvm-telegram-notify
+  name: Telegram — nghiêm trọng và nhiệt độ
+  description: >
+    Page Telegram cho alert critical/high và mọi rule nhiệt độ.
+    Warning khác không gửi. Tiêu đề in đậm, emoji theo mức độ.
+  disabled: false
+  triggers:
+    - type: alert
+      cel: 'severity == "critical" || severity == "high" || (name.contains("Temp") && !name.contains("Missing"))'
+      only_on_change:
+        - status
+  actions:
+    - name: telegram-temp-critical-firing
+      if: "'{{ alert.status }}' == 'firing' and 'Temp' in '{{ alert.name }}' and 'Missing' not in '{{ alert.name }}' and '{{ alert.severity }}' in ('critical', 'high')"
+      provider:
+        type: telegram
+        config: "{{ providers.telegram }}"
+        with:
+          chat_id: "1885833561"
+          parse_mode: html
+          message: |
+            <b>🔴🔥 NGHIÊM TRỌNG — NHIỆT ĐỘ</b>
+            🚨 <b>Đang xảy ra</b>
+            📌 <b>{{ alert.name }}</b>
+            Mức: 🔴 {{ alert.severity }}
+            Nhóm: {{#fn.na}}{{ alert.class }}{{/fn.na}}
+            🖥 Máy: {{#fn.na}}{{ alert.host }}{{/fn.na}}
+            🖧 VM: {{#fn.na}}{{ alert.vm }}{{/fn.na}}
+            📍 Instance: {{#fn.na}}{{ alert.instance }}{{/fn.na}}
+            ⚙️ Job: {{#fn.na}}{{ alert.job }}{{/fn.na}}
+            📝 {{#fn.na}}{{ alert.description }}{{/fn.na}}
+            🧰 Xem nhiệt CPU, NVMe hoặc AI Box ngay. Ngưỡng 90°C là critical.
+            🔗 <a href="http://10.168.1.2:3000/d/physical-temp">Grafana nhiệt</a> · <a href="http://10.168.1.2:3001">Keep</a> · <a href="http://10.168.1.2:9093">Alertmanager</a>
+
+    - name: telegram-temp-warn-firing
+      if: "'{{ alert.status }}' == 'firing' and 'Temp' in '{{ alert.name }}' and 'Missing' not in '{{ alert.name }}' and '{{ alert.severity }}' not in ('critical', 'high')"
+      provider:
+        type: telegram
+        config: "{{ providers.telegram }}"
+        with:
+          chat_id: "1885833561"
+          parse_mode: html
+          message: |
+            <b>🟠🔥 ƯU TIÊN CAO — NHIỆT ĐỘ</b>
+            ⚠️ <b>Đang xảy ra</b>
+            📌 <b>{{ alert.name }}</b>
+            Mức: 🟠 {{ alert.severity }}
+            Nhóm: {{#fn.na}}{{ alert.class }}{{/fn.na}}
+            🖥 Máy: {{#fn.na}}{{ alert.host }}{{/fn.na}}
+            🖧 VM: {{#fn.na}}{{ alert.vm }}{{/fn.na}}
+            📍 Instance: {{#fn.na}}{{ alert.instance }}{{/fn.na}}
+            ⚙️ Job: {{#fn.na}}{{ alert.job }}{{/fn.na}}
+            📝 {{#fn.na}}{{ alert.description }}{{/fn.na}}
+            🧰 HostCPUTempSustained = package ght-faceid-server trên 70°C trong 30 phút. Ngưỡng 80°C và 90°C vẫn là PhysicalCPUTempHigh / PhysicalCPUTempCritical.
+            🔗 <a href="http://10.168.1.2:3000/d/physical-temp">Grafana nhiệt</a> · <a href="http://10.168.1.2:3001">Keep</a> · <a href="http://10.168.1.2:9093">Alertmanager</a>
+
+    - name: telegram-temp-resolved
+      if: "'{{ alert.status }}' == 'resolved' and 'Temp' in '{{ alert.name }}' and 'Missing' not in '{{ alert.name }}'"
+      provider:
+        type: telegram
+        config: "{{ providers.telegram }}"
+        with:
+          chat_id: "1885833561"
+          parse_mode: html
+          message: |
+            <b>🟢 ĐÃ HẾT — NHIỆT ĐỘ</b>
+            ✅ <b>Đã trở lại bình thường</b>
+            📌 <b>{{ alert.name }}</b>
+            Mức: 🟢 {{ alert.severity }}
+            🖥 Máy: {{#fn.na}}{{ alert.host }}{{/fn.na}}
+            🖧 VM: {{#fn.na}}{{ alert.vm }}{{/fn.na}}
+            📍 Instance: {{#fn.na}}{{ alert.instance }}{{/fn.na}}
+            📝 {{#fn.na}}{{ alert.description }}{{/fn.na}}
+            🔗 <a href="http://10.168.1.2:3000/d/physical-temp">Grafana nhiệt</a> · <a href="http://10.168.1.2:3001">Keep</a>
+
+    - name: telegram-critical-firing
+      if: "'{{ alert.status }}' == 'firing' and '{{ alert.severity }}' in ('critical', 'high') and 'Temp' not in '{{ alert.name }}'"
+      provider:
+        type: telegram
+        config: "{{ providers.telegram }}"
+        with:
+          chat_id: "1885833561"
+          parse_mode: html
+          message: |
+            <b>🔴 NGHIÊM TRỌNG</b>
+            🚨 <b>Đang xảy ra</b>
+            📌 <b>{{ alert.name }}</b>
+            Mức: 🔴 {{ alert.severity }}
+            Nhóm: {{#fn.na}}{{ alert.class }}{{/fn.na}}
+            🖥 Máy: {{#fn.na}}{{ alert.host }}{{/fn.na}}
+            🖧 VM: {{#fn.na}}{{ alert.vm }}{{/fn.na}}
+            📍 Instance: {{#fn.na}}{{ alert.instance }}{{/fn.na}}
+            ⚙️ Job: {{#fn.na}}{{ alert.job }}{{/fn.na}}
+            📝 {{#fn.na}}{{ alert.description }}{{/fn.na}}
+            🔗 <a href="http://10.168.1.2:3000/d/kvm-fleet">Grafana</a> · <a href="http://10.168.1.2:3001">Keep</a> · <a href="http://10.168.1.2:9093">Alertmanager</a>
+
+    - name: telegram-critical-resolved
+      if: "'{{ alert.status }}' == 'resolved' and '{{ alert.severity }}' in ('critical', 'high') and 'Temp' not in '{{ alert.name }}'"
+      provider:
+        type: telegram
+        config: "{{ providers.telegram }}"
+        with:
+          chat_id: "1885833561"
+          parse_mode: html
+          message: |
+            <b>🟢 ĐÃ HẾT — NGHIÊM TRỌNG</b>
+            ✅ <b>Đã trở lại bình thường</b>
+            📌 <b>{{ alert.name }}</b>
+            Mức: 🟢 {{ alert.severity }}
+            🖥 Máy: {{#fn.na}}{{ alert.host }}{{/fn.na}}
+            🖧 VM: {{#fn.na}}{{ alert.vm }}{{/fn.na}}
+            📍 Instance: {{#fn.na}}{{ alert.instance }}{{/fn.na}}
+            📝 {{#fn.na}}{{ alert.description }}{{/fn.na}}
+            🔗 <a href="http://10.168.1.2:3000/d/kvm-fleet">Grafana</a> · <a href="http://10.168.1.2:3001">Keep</a>

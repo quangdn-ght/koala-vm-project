@@ -41,6 +41,12 @@ services:
       KEEP_JWT_SECRET: ${KEEP_JWT_SECRET:?set KEEP_JWT_SECRET in .env}
       KEEP_DEFAULT_API_KEYS: ${KEEP_DEFAULT_API_KEYS:?set KEEP_DEFAULT_API_KEYS in .env}
       KEEP_PROVIDERS_DIRECTORY: /providers
+      KEEP_WORKFLOWS_DIRECTORY: /workflows
+      NOTIFY_TELEGRAM_BOT_TOKEN: ${NOTIFY_TELEGRAM_BOT_TOKEN:-}
+      NOTIFY_TELEGRAM_CHAT_ID: ${NOTIFY_TELEGRAM_CHAT_ID:-}
+      # Parser Keep thay $(NOTIFY_TELEGRAM_BOT_TOKEN) khi chạy workflow.
+      # Provision từ file YAML không gọi bước thay biến này.
+      KEEP_PROVIDER_TELEGRAM: '{"authentication":{"bot_token":"$(NOTIFY_TELEGRAM_BOT_TOKEN)"}}'
       PUSHER_APP_ID: "1"
       PUSHER_APP_KEY: keepappkey
       PUSHER_APP_SECRET: ${KEEP_PUSHER_APP_SECRET:-keepappsecret}
@@ -54,6 +60,7 @@ services:
       # Paths relative to monitoring/ (first -f compose file), not keep/.
       - ./keep/state:/state
       - ./keep/providers:/providers:ro
+      - ./keep/workflows/active:/workflows:ro
     ports:
       - "${KEEP_API_PORT:-8080}:8080"
     depends_on:

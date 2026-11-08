@@ -507,5 +507,5 @@ VM production: `faceid`, `wiseeye`, `kong-gateway`, `chebichat`. Optional (warni
 
 ## Keep (quản lý alarm)
 
-Keep inbox đang chạy: **http://10.168.1.2:3001** (user `keep`, password `KEEP_DEFAULT_PASSWORD` trong `.env`). Grafana vẫn http://10.168.1.2:3000. **Chưa gửi Telegram.** Chi tiết: `keep/README.md`, kế hoạch `keep/PLAN.md`.
+Keep inbox đang chạy: **http://10.168.1.2:3001** (user `keep`, password `KEEP_DEFAULT_PASSWORD` trong `.env`). Grafana vẫn http://10.168.1.2:3000. Telegram gửi tới `NOTIFY_TELEGRAM_CHAT_ID`: chỉ **critical/high** và **mọi cảnh báo nhiệt độ** (warning khác không gửi). Chi tiết: `keep/README.md`, kế hoạch `keep/PLAN.md`.
 )

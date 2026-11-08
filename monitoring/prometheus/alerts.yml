@@ -399,6 +399,18 @@ groups:
           summary: "{{ $labels.host }} CPU {{ $value | humanize }}°C"
           description: "CPU/package temperature above 80°C."
 
+      # ght-faceid-server sat at 74–79°C for days while one migrating thread
+      # held a core (session libvirtd). The 80°C rule did not stay firing.
+      - alert: HostCPUTempSustained
+        expr: physical:cpu_temp_celsius{host="ght-faceid-server"} > 70
+        for: 30m
+        labels:
+          severity: warning
+          class: capacity
+        annotations:
+          summary: "ght-faceid-server CPU {{ $value | humanize }}°C for 30m"
+          description: "Package temperature above 70°C for 30 minutes. Check for a userspace thread pegged on one core, including a session libvirtd udev busy-loop."
+
       - alert: PhysicalCPUTempCritical
         expr: physical:cpu_temp_celsius > 90
         for: 2m

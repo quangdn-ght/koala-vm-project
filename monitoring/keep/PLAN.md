@@ -2,7 +2,7 @@
 
 **Trạng thái:** plan + khung file. **Chưa `docker compose up` Keep, chưa sửa Alertmanager đang chạy.**
 
-Giai đoạn hiện tại: Keep là **inbox alarm**. Grafana giữ vai trò quan sát fleet. **Không gửi Telegram / OTT** cho đến Phase 2 (go/no-go riêng).
+Giai đoạn hiện tại: Keep là **inbox alarm**. Grafana giữ vai trò quan sát fleet. Telegram đã bật: chỉ severity **critical/high**, cộng mọi rule **nhiệt độ** (kể cả warning, ưu tiên cao). Warning khác không gửi. Workflow: `keep/workflows/active/telegram-notify.yml`.
 
 Thư mục này: `/home/ght/deploy/monitoring/keep`.
 

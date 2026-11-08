@@ -4,7 +4,14 @@ Grafana metrics: http://10.168.1.2:3000
 Keep inbox: **http://10.168.1.2:3001**  
 Keep API: http://10.168.1.2:8080/docs  
 
-Telegram **chưa** bật.
+Telegram **đã bật** tới chat `NOTIFY_TELEGRAM_CHAT_ID` (hiện `1885833561`).
+
+Chỉ gửi:
+
+- Mức **critical** hoặc **high**
+- Mọi cảnh báo **nhiệt độ** (kể cả warning), mẫu chữ **ƯU TIÊN CAO**. `HostCPUTempSustained` (package `ght-faceid-server` > 70°C trong 30 phút) thuộc nhóm này. `PhysicalTempMissing` không gửi.
+
+Warning khác (disk, RAM, swap, SSH, VM optional, Oraybox API) chỉ nằm trên Keep, không ra Telegram. Có tin khi bắt đầu và tin khi hết. Lặp lại cùng trạng thái không gửi thêm. Tin dùng HTML: tiêu đề in đậm, emoji 🔴 nghiêm trọng, 🟠🔥 nhiệt độ sớm, 🟢 đã hết. Telegram không tô màu chữ.
 
 ## Xem trên web
 

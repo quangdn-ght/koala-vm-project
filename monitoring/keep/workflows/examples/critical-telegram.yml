@@ -1,7 +1,5 @@
-# Giai đoạn hiện tại: KHÔNG provision file này.
-# Phase 2: copy vào keep/workflows/active/ rồi gắn KEEP_WORKFLOWS_DIRECTORY=/workflows
-# và restart keep-backend. Cần TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID trong .env
-# (provider telegram provisioned hoặc secrets trong Keep UI).
+# Mẫu cũ, disabled. Workflow đang dùng: keep/workflows/active/telegram-notify.yml
+# Auth: KEEP_PROVIDER_TELEGRAM trên keep-backend, token từ NOTIFY_TELEGRAM_BOT_TOKEN.
 #
 # Policy resolve: gửi tin "resolved" cho critical (send_resolved=true phía AM).
 # Dedup: Keep fingerprint theo alertname+vm+host; workflow chỉ chạy khi alert firing mới.
