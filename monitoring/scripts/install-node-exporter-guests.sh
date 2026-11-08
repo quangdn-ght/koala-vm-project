@@ -17,7 +17,6 @@ GUESTS=(
   "ght@10.168.1.56 wiseeye"
   "ght@10.168.1.58 unilever"
   "ght@10.168.1.59 chebichat"
-  "ght@10.168.1.106 nx-vms"
 )
 
 mkdir -p "$CACHE"

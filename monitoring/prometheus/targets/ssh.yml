@@ -8,8 +8,6 @@
   labels: {vm: unilever, role: guest}
 - targets: ["10.168.1.59:22"]
   labels: {vm: chebichat, role: guest}
-- targets: ["10.168.1.106:22"]
-  labels: {vm: nx-vms, role: guest}
 - targets: ["10.168.1.5:22"]
   labels: {host: gx10-b273, role: physical}
 - targets: ["10.168.1.50:22"]
@@ -20,3 +18,5 @@
   labels: {host: ght-demo-server, role: physical}
 - targets: ["192.168.3.101:22"]
   labels: {host: ght-dev-server, role: physical}
+- targets: ["10.168.1.106:22"]
+  labels: {host: ght-elitedesk, role: physical}

@@ -202,7 +202,7 @@ groups:
   - name: vms
     rules:
       - alert: VMDown
-        expr: libvirt_domain_info_state{vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} != 1
+        expr: libvirt_domain_info_state{vm=~"faceid|wiseeye|kong-gateway|chebichat"} != 1
         for: 1m
         labels:
           severity: critical
@@ -212,16 +212,16 @@ groups:
           description: "libvirt state code {{ $value }} (1=running). Production VM should be up."
 
       - alert: VMDownOptional
-        expr: libvirt_domain_info_state{vm="unilever"} != 1
+        expr: libvirt_domain_info_state{vm=~"unilever|nx-vms"} != 1
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "VM unilever is not running"
-          description: "Autostart is enabled; VM is shut off or crashed. Not in the production-critical set."
+          summary: "VM {{ $labels.vm }} is not running"
+          description: "Optional guest (shut off is expected). nx-vms IP 10.168.1.106 is now physical host ght-elitedesk."
 
       - alert: GuestUnreachable
-        expr: probe_success{job="blackbox-icmp",role="guest",vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} == 0
+        expr: probe_success{job="blackbox-icmp",role="guest",vm=~"faceid|wiseeye|kong-gateway|chebichat"} == 0
         for: 2m
         labels:
           severity: critical
@@ -232,7 +232,7 @@ groups:
 
       - alert: SSHDown
         expr: |
-          probe_success{job="blackbox-ssh",vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} == 0
+          probe_success{job="blackbox-ssh",vm=~"faceid|wiseeye|kong-gateway|chebichat"} == 0
           and on(vm) probe_success{job="blackbox-icmp",role="guest"} == 1
         for: 3m
         labels:
@@ -262,7 +262,7 @@ groups:
 
       - alert: GuestNodeExporterDown
         expr: |
-          up{job="nodes",vm=~"faceid|wiseeye|kong-gateway|chebichat|nx-vms"} == 0
+          up{job="nodes",vm=~"faceid|wiseeye|kong-gateway|chebichat"} == 0
           and on(vm) probe_success{job="blackbox-icmp",role="guest"} == 1
         for: 3m
         labels:

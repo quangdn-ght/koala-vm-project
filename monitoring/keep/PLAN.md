@@ -175,7 +175,7 @@ Telegram cột = **Phase 2+**. Phase 0–1: mọi dòng “Keep inbox” chỉ h
 
 | Alert | Sev | Keep | Telegram Phase 2 |
 |-------|-----|------|------------------|
-| VMDown | critical | inbox | có (prod: faceid, wiseeye, kong-gateway, chebichat, nx-vms) |
+| VMDown | critical | inbox | có (prod: faceid, wiseeye, kong-gateway, chebichat; nx-vms optional / IP 10.168.1.106 = physical ght-elitedesk) |
 | VMDownOptional | warning | inbox | **không** (unilever) — **đang fire** |
 | GuestUnreachable | critical | inbox | có |
 | AppHTTPDown | critical (`service`) | inbox | `role=~"guest|physical"` |

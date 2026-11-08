@@ -10,6 +10,7 @@ KNOWN_HOSTS="/tmp/physical-node-exporter-known-hosts"
 SSH_BASE=(-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS"
           -o ConnectTimeout=10 -o PreferredAuthentications=keyboard-interactive,password
           -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1)
+SSH_KEY=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
 
 # ip user password hostname arch
 HOSTS=(
@@ -18,6 +19,10 @@ HOSTS=(
   "10.168.1.51 koala koala intel-nuc7 amd64"
   "10.168.1.54 ght 1 ght-demo-server amd64"
   "192.168.3.101 ght Giahung@2024 ght-dev-server amd64"
+)
+# SSH pubkey (BatchMode). Password is sudo only.
+KEY_HOSTS=(
+  "10.168.1.106 ght 1 ght-elitedesk amd64"
 )
 
 mkdir -p "$CACHE"
@@ -97,12 +102,34 @@ install_one() {
   echo "OK $name"
 }
 
+install_one_key() {
+  local ip="$1" user="$2" pass="$3" name="$4" arch="$5"
+  local tar="node_exporter-${VERSION}.linux-${arch}.tar.gz"
+  echo "=== $name ($user@$ip $arch, ssh-key) ==="
+  if ! ssh "${SSH_KEY[@]}" "${user}@${ip}" 'echo ok' >/dev/null; then
+    echo "SKIP $name: SSH key failed"
+    return 1
+  fi
+  scp "${SSH_KEY[@]}" "$CACHE/$tar" "${user}@${ip}:/tmp/$tar"
+  ssh "${SSH_KEY[@]}" "${user}@${ip}" "bash -s -- $VERSION $arch $pass" <<<"$REMOTE_INSTALL"
+  echo "OK $name"
+}
+
 ok=0
 fail=0
 for row in "${HOSTS[@]}"; do
   # shellcheck disable=SC2086
   set -- $row
   if install_one "$1" "$2" "$3" "$4" "$5"; then
+    ok=$((ok + 1))
+  else
+    fail=$((fail + 1))
+  fi
+done
+for row in "${KEY_HOSTS[@]}"; do
+  # shellcheck disable=SC2086
+  set -- $row
+  if install_one_key "$1" "$2" "$3" "$4" "$5"; then
     ok=$((ok + 1))
   else
     fail=$((fail + 1))

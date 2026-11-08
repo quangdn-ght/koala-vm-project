@@ -29,3 +29,4 @@ Thumbs.db
 # Monitoring secrets and downloaded binaries
 monitoring/.env
 monitoring/cache/
+perf.data

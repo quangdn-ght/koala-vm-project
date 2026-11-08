@@ -154,8 +154,8 @@ Job Prometheus: `host` (`:9100`), `libvirt` (`:9177`). Label `role=hypervisor`.
 | faceid | 10.168.1.55 | :9100 | Production |
 | wiseeye | 10.168.1.56 | :9100 | Production |
 | chebichat | 10.168.1.59 | :9100 | Production |
-| nx-vms | 10.168.1.106 | :9100 | Production |
 | unilever | 10.168.1.58 | :9100 | Optional — alert warning nếu tắt, có thể không SSH được khi shut off |
+| nx-vms | (libvirt, shut off) | — | Optional — IP `10.168.1.106` đã chuyển sang máy vật lý `ght-elitedesk` |
 
 Cài `node_exporter` trên guest (systemd, listen `:9100`):
 
@@ -174,6 +174,7 @@ Script dùng SSH key (`BatchMode`), cache tarball trong `cache/`. VM không SSH 
 | intel-nuc7 | 10.168.1.51 | amd64 |
 | ght-demo-server | 10.168.1.54 | amd64 |
 | ght-dev-server | 192.168.3.101 | amd64 |
+| ght-elitedesk | 10.168.1.106 | amd64 | HP EliteDesk 800 G6; hostname OS `ght`; SSH key `ght@`; Nextcloud `:80` |
 
 Hypervisor **không** nằm trong job `physical` (đã có job `host`).
 
@@ -272,8 +273,8 @@ Sửa file này rồi đợi file_sd 30s, hoặc `POST /-/reload`.
 | http://10.168.1.56:3003/docs | wiseeye | wiseeye-backend |
 | http://10.168.1.59:3000/ | chebichat | chebichat-web |
 | http://10.168.1.59:3001/ | chebichat | chebichat-web-vi |
-| http://10.168.1.106:8000/ | nx-vms | nx-vms-web |
 | http://192.168.3.101:3000/api/health | ght-dev-server | fshare-dl |
+| http://10.168.1.106/ | ght-elitedesk | nextcloud |
 
 Target HTTP cho AI Box / Oraybox **không** sửa trong `http.yml` — chúng được sinh từ inventory (xem dưới).
 
@@ -424,7 +425,7 @@ Alertmanager (`alertmanager/alertmanager.yml`): group theo `[alertname, vm, host
 | GuestCPUHigh | vCPU > 90% | warning, 15m |
 | InfraUnreachable | ping gateway / NAS | critical (`down`), 2m |
 
-VM production: `faceid`, `wiseeye`, `kong-gateway`, `chebichat`, `nx-vms`.
+VM production: `faceid`, `wiseeye`, `kong-gateway`, `chebichat`. Optional (warning): `unilever`, `nx-vms` (shut off; IP 10.168.1.106 = physical `ght-elitedesk`).
 
 ### Máy vật lý + nhiệt độ
 
@@ -500,7 +501,7 @@ VM production: `faceid`, `wiseeye`, `kong-gateway`, `chebichat`, `nx-vms`.
 - Mật khẩu Grafana trong `.env` có thể **không khớp** instance đang chạy nếu Grafana đã khởi tạo volume trước khi đổi password. Khi API trả 401, đặt lại password trong UI hoặc xóa volume Grafana (mất dashboard tùy biến trên UI).
 - `json-exporter` panic nếu hai metric cùng tên khác help string — đặc biệt module `oraybox` (`oraybox_lan`).
 - `oraybox-10` (192.168.3.10): ICMP lên, CGI `ether_status_get` hay 500.
-- Cảm biến nhiệt: GHT-Koala-01, gx10-b273 (ARM acpitz + NVMe), ght-demo-server, ght-dev-server, ght-faceid-server (job `host`). intel-nuc7 không có metric nhiệt nếu `up{job="physical"}==0`.
+- Cảm biến nhiệt: GHT-Koala-01, gx10-b273 (ARM acpitz + NVMe), ght-demo-server, ght-dev-server, ght-elitedesk, ght-faceid-server (job `host`). intel-nuc7 không có metric nhiệt nếu `up{job="physical"}==0`.
 - Retention Prometheus: **15 ngày** (`--storage.tsdb.retention.time=15d`).
 - Swap hypervisor: `/swap.img` (8G) + `/swapfile` (24G) trên filesystem `/` (không đặt trên `/mnt/data`). `vm.swappiness=10` trong `/etc/sysctl.d/99-kvm-host-vm.conf`. `HostSwapFull` **chỉ** critical khi swap > 80% **và** MemAvailable < 4 GiB (10m) — đường stall/OOM. Swap đầy mà RAM còn dư → `HostSwapHigh` warning. `/mnt/data` ~64% used chưa đụng ngưỡng 80%.
 

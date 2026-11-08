@@ -53,8 +53,6 @@ scrape_configs:
         labels: {vm: unilever, ip: "10.168.1.58", role: guest}
       - targets: ["10.168.1.59:9100"]
         labels: {vm: chebichat, ip: "10.168.1.59", role: guest}
-      - targets: ["10.168.1.106:9100"]
-        labels: {vm: nx-vms, ip: "10.168.1.106", role: guest}
     relabel_configs:
       - source_labels: [vm]
         target_label: instance
@@ -71,6 +69,8 @@ scrape_configs:
         labels: {host: ght-demo-server, ip: "10.168.1.54", role: physical}
       - targets: ["192.168.3.101:9100"]
         labels: {host: ght-dev-server, ip: "192.168.3.101", role: physical}
+      - targets: ["10.168.1.106:9100"]
+        labels: {host: ght-elitedesk, ip: "10.168.1.106", role: physical}
     relabel_configs:
       - source_labels: [host]
         target_label: instance
